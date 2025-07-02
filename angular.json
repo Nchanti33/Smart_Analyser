@@ -44,8 +44,7 @@
             "development": {
               "optimization": false,
               "extractLicenses": false,
-              "sourceMap": true,
-              "proxyConfig": "proxy.conf.json"
+              "sourceMap": true
             }
           },
           "defaultConfiguration": "production"
