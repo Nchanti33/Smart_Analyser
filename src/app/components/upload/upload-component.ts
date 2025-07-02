@@ -33,7 +33,10 @@ export class UploadComponent {
 
   private readonly allowedExtensions = ['.pdf', '.docx', '.doc', '.txt'];
 
-  constructor(private difyService: DifyService) {}
+  constructor(private difyService: DifyService) {
+    // Set the default API key from the service
+    this.apiKey.set(this.difyService.getDefaultApiKey());
+  }
 
   onDragOver(event: DragEvent): void {
     event.preventDefault();
@@ -91,17 +94,13 @@ export class UploadComponent {
   }
 
   private uploadFile(uploadedFile: UploadedFile): void {
-    if (!this.apiKey()) {
-      this.updateFileStatus(uploadedFile, 'error', 'Clé API manquante');
-      return;
-    }
-
     // Simulate progress
     const progressInterval = setInterval(() => {
       uploadedFile.progress = Math.min(uploadedFile.progress + 10, 90);
     }, 200);
 
-    this.difyService.uploadFile(this.apiKey(), uploadedFile.file, this.userId())
+    const apiKey = this.apiKey() || undefined;
+    this.difyService.uploadFile(uploadedFile.file, this.userId(), apiKey)
       .subscribe({
         next: (response) => {
           clearInterval(progressInterval);
