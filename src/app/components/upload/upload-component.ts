@@ -95,12 +95,22 @@ export class UploadComponent {
     // Take only the first file
     const file = files[0];
     
+    console.log('📁 Handling file:', {
+      name: file.name,
+      size: file.size,
+      type: file.type,
+      lastModified: file.lastModified
+    });
+    
     if (!this.isValidFile(file)) {
-      alert('Format de fichier non supporté. Seuls les formats PDF, DOCX et TXT sont acceptés.');
+      const errorMsg = `Format de fichier non supporté: ${file.type}. Seuls les formats PDF, DOCX et TXT sont acceptés.`;
+      console.error('❌ Invalid file type:', errorMsg);
+      alert(errorMsg);
       return;
     }
 
     if (files.length > 1) {
+      console.warn('⚠️ Multiple files detected, only processing the first one');
       alert('Un seul fichier peut être téléchargé à la fois. Seul le premier fichier sera traité.');
     }
 
@@ -110,6 +120,7 @@ export class UploadComponent {
       progress: 0
     };
 
+    console.log('✅ File validation passed, starting upload...');
     this.uploadedFiles.set([uploadedFile]);
     this.uploadFile(uploadedFile);
   }
@@ -120,26 +131,82 @@ export class UploadComponent {
       file.name.toLowerCase().endsWith(ext)
     );
     
+    console.log('🔍 File validation:', {
+      fileName: file.name,
+      fileType: file.type,
+      isValidType,
+      hasValidExtension,
+      allowedTypes: this.allowedTypes,
+      allowedExtensions: this.allowedExtensions
+    });
+    
     return isValidType || hasValidExtension;
   }
 
   private uploadFile(uploadedFile: UploadedFile): void {
+    console.log('🚀 Starting file upload process...');
+    
     // Simulate progress
     const progressInterval = setInterval(() => {
-      uploadedFile.progress = Math.min(uploadedFile.progress + 10, 90);
+      if (uploadedFile.progress < 90) {
+        uploadedFile.progress = Math.min(uploadedFile.progress + 10, 90);
+        console.log(`📊 Upload progress: ${uploadedFile.progress}%`);
+        // Trigger change detection
+        this.uploadedFiles.update(files => [...files]);
+      }
     }, 200);
 
     this.difyService.uploadFile(uploadedFile.file, this.defaultUserId)
       .subscribe({
         next: (response) => {
+          console.log('✅ Upload successful:', response);
           clearInterval(progressInterval);
           uploadedFile.progress = 100;
           uploadedFile.id = response.id;
           this.updateFileStatus(uploadedFile, 'success');
         },
         error: (error) => {
+          console.error('❌ Upload failed:', error);
           clearInterval(progressInterval);
-          const errorMessage = error.error?.message || 'Erreur lors du téléchargement';
+          
+          let errorMessage = 'Erreur lors du téléchargement';
+          
+          // Analyse détaillée de l'erreur
+          if (error.status) {
+            console.error('HTTP Status:', error.status);
+            console.error('HTTP Status Text:', error.statusText);
+          }
+          
+          if (error.error) {
+            console.error('Error details:', error.error);
+            if (typeof error.error === 'string') {
+              errorMessage = error.error;
+            } else if (error.error.message) {
+              errorMessage = error.error.message;
+            } else if (error.error.detail) {
+              errorMessage = error.error.detail;
+            }
+          }
+          
+          if (error.message) {
+            console.error('Error message:', error.message);
+            errorMessage = error.message;
+          }
+          
+          // Erreurs spécifiques
+          if (error.status === 0) {
+            errorMessage = 'Impossible de se connecter au serveur. Vérifiez votre connexion internet.';
+          } else if (error.status === 401) {
+            errorMessage = 'Erreur d\'authentification. Clé API invalide.';
+          } else if (error.status === 413) {
+            errorMessage = 'Fichier trop volumineux. Taille maximale dépassée.';
+          } else if (error.status === 415) {
+            errorMessage = 'Type de fichier non supporté par le serveur.';
+          } else if (error.status >= 500) {
+            errorMessage = 'Erreur serveur. Veuillez réessayer plus tard.';
+          }
+          
+          console.error('Final error message:', errorMessage);
           this.updateFileStatus(uploadedFile, 'error', errorMessage);
         }
       });
@@ -150,6 +217,8 @@ export class UploadComponent {
     status: 'uploading' | 'success' | 'error' | 'processing' | 'processed',
     errorMessage?: string
   ): void {
+    console.log(`📝 Updating file status to: ${status}`, errorMessage ? `Error: ${errorMessage}` : '');
+    
     uploadedFile.status = status;
     if (errorMessage) {
       uploadedFile.errorMessage = errorMessage;
@@ -160,9 +229,13 @@ export class UploadComponent {
   }
 
   processDocuments(): void {
+    console.log('🤖 Starting document processing...');
+    
     const successfulFiles = this.getSuccessfulUploads();
     if (successfulFiles.length === 0) {
-      alert('Aucun fichier à traiter. Veuillez d\'abord télécharger un fichier.');
+      const errorMsg = 'Aucun fichier à traiter. Veuillez d\'abord télécharger un fichier.';
+      console.error('❌', errorMsg);
+      alert(errorMsg);
       return;
     }
 
@@ -171,9 +244,13 @@ export class UploadComponent {
       .filter(id => id !== undefined) as string[];
 
     if (fileIds.length === 0) {
-      alert('Aucun ID de fichier disponible pour le traitement.');
+      const errorMsg = 'Aucun ID de fichier disponible pour le traitement.';
+      console.error('❌', errorMsg);
+      alert(errorMsg);
       return;
     }
+
+    console.log('📄 Processing files with IDs:', fileIds);
 
     this.isProcessing.set(true);
     this.analysisResult.set('');
@@ -189,9 +266,12 @@ export class UploadComponent {
 3. Les recommandations ou conclusions importantes
 4. Une synthèse globale du document`;
 
+    console.log('📤 Sending processing request with query:', query);
+
     this.difyService.processDocuments(fileIds, query, this.defaultUserId)
       .subscribe({
         next: (response) => {
+          console.log('✅ Document processing successful:', response);
           this.isProcessing.set(false);
           this.analysisResult.set(response.answer);
           
@@ -202,8 +282,17 @@ export class UploadComponent {
           });
         },
         error: (error) => {
+          console.error('❌ Document processing failed:', error);
           this.isProcessing.set(false);
-          const errorMessage = error.error?.message || 'Erreur lors du traitement du document';
+          
+          let errorMessage = 'Erreur lors du traitement du document';
+          
+          if (error.error?.message) {
+            errorMessage = error.error.message;
+          } else if (error.message) {
+            errorMessage = error.message;
+          }
+          
           this.analysisResult.set(`Erreur: ${errorMessage}`);
           
           // Revert files to success status
@@ -217,11 +306,13 @@ export class UploadComponent {
   }
 
   removeFile(index: number): void {
+    console.log('🗑️ Removing file at index:', index);
     this.uploadedFiles.set([]);
     this.analysisResult.set('');
   }
 
   clearAllFiles(): void {
+    console.log('🗑️ Clearing all files');
     this.uploadedFiles.set([]);
     this.analysisResult.set('');
   }
