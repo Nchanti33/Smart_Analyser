@@ -5,9 +5,10 @@ import { DifyService } from '../../services/dify.service';
 interface UploadedFile {
   file: File;
   id?: string;
-  status: 'uploading' | 'success' | 'error';
+  status: 'uploading' | 'success' | 'error' | 'processing' | 'processed';
   progress: number;
   errorMessage?: string;
+  analysisResult?: string;
 }
 
 @Component({
@@ -20,6 +21,8 @@ interface UploadedFile {
 export class UploadComponent {
   uploadedFiles = signal<UploadedFile[]>([]);
   isDragOver = signal(false);
+  isProcessing = signal(false);
+  analysisResult = signal<string>('');
 
   private readonly allowedTypes = [
     'application/pdf',
@@ -117,7 +120,7 @@ export class UploadComponent {
 
   private updateFileStatus(
     uploadedFile: UploadedFile, 
-    status: 'uploading' | 'success' | 'error',
+    status: 'uploading' | 'success' | 'error' | 'processing' | 'processed',
     errorMessage?: string
   ): void {
     uploadedFile.status = status;
@@ -129,12 +132,70 @@ export class UploadComponent {
     this.uploadedFiles.update(files => [...files]);
   }
 
+  processDocuments(): void {
+    const successfulFiles = this.getSuccessfulUploads();
+    if (successfulFiles.length === 0) {
+      alert('Aucun fichier à traiter. Veuillez d\'abord télécharger des fichiers.');
+      return;
+    }
+
+    const fileIds = successfulFiles
+      .map(file => file.id)
+      .filter(id => id !== undefined) as string[];
+
+    if (fileIds.length === 0) {
+      alert('Aucun ID de fichier disponible pour le traitement.');
+      return;
+    }
+
+    this.isProcessing.set(true);
+    this.analysisResult.set('');
+
+    // Mark files as processing
+    successfulFiles.forEach(file => {
+      this.updateFileStatus(file, 'processing');
+    });
+
+    const query = `Analysez ces ${fileIds.length} document(s) et fournissez:
+1. Un résumé détaillé du contenu
+2. Les points clés identifiés
+3. Les recommandations ou conclusions importantes
+4. Une synthèse globale si plusieurs documents sont analysés`;
+
+    this.difyService.processDocuments(fileIds, query, this.defaultUserId)
+      .subscribe({
+        next: (response) => {
+          this.isProcessing.set(false);
+          this.analysisResult.set(response.answer);
+          
+          // Mark files as processed
+          successfulFiles.forEach(file => {
+            file.analysisResult = response.answer;
+            this.updateFileStatus(file, 'processed');
+          });
+        },
+        error: (error) => {
+          this.isProcessing.set(false);
+          const errorMessage = error.error?.message || 'Erreur lors du traitement des documents';
+          this.analysisResult.set(`Erreur: ${errorMessage}`);
+          
+          // Revert files to success status
+          successfulFiles.forEach(file => {
+            this.updateFileStatus(file, 'success');
+          });
+          
+          alert(`Erreur lors du traitement: ${errorMessage}`);
+        }
+      });
+  }
+
   removeFile(index: number): void {
     this.uploadedFiles.update(files => files.filter((_, i) => i !== index));
   }
 
   clearAllFiles(): void {
     this.uploadedFiles.set([]);
+    this.analysisResult.set('');
   }
 
   getFileIcon(fileName: string): string {
@@ -163,6 +224,16 @@ export class UploadComponent {
   }
 
   getSuccessfulUploads(): UploadedFile[] {
-    return this.uploadedFiles().filter(file => file.status === 'success');
+    return this.uploadedFiles().filter(file => 
+      file.status === 'success' || file.status === 'processing' || file.status === 'processed'
+    );
+  }
+
+  getProcessedFiles(): UploadedFile[] {
+    return this.uploadedFiles().filter(file => file.status === 'processed');
+  }
+
+  canProcessDocuments(): boolean {
+    return this.getSuccessfulUploads().length > 0 && !this.isProcessing();
   }
 }

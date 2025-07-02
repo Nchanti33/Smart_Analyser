@@ -67,6 +67,18 @@ export interface DifyWorkflowResponse {
   };
 }
 
+export interface DocumentProcessingRequest {
+  query: string;
+  user: string;
+  files: Array<{
+    type: 'document';
+    transfer_method: 'local_file';
+    upload_file_id: string;
+  }>;
+  inputs?: Record<string, any>;
+  response_mode?: 'streaming' | 'blocking';
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -98,6 +110,29 @@ export class DifyService {
   }
 
   /**
+   * Process documents with Dify API
+   */
+  processDocuments(
+    fileIds: string[],
+    query: string = 'Analysez ces documents et fournissez un résumé détaillé.',
+    user: string
+  ): Observable<DifyConversationResponse> {
+    const request: DifyConversationRequest = {
+      inputs: {},
+      query: query,
+      response_mode: 'blocking',
+      user: user,
+      files: fileIds.map(fileId => ({
+        type: 'document' as const,
+        transfer_method: 'local_file' as const,
+        upload_file_id: fileId
+      }))
+    };
+
+    return this.sendConversationMessage(request);
+  }
+
+  /**
    * Run a Dify workflow
    */
   runWorkflow(
@@ -109,6 +144,28 @@ export class DifyService {
       request,
       { headers }
     );
+  }
+
+  /**
+   * Run workflow with documents
+   */
+  runWorkflowWithDocuments(
+    fileIds: string[],
+    inputs: Record<string, any> = {},
+    user: string
+  ): Observable<DifyWorkflowResponse> {
+    const request: DifyWorkflowRequest = {
+      inputs: inputs,
+      response_mode: 'blocking',
+      user: user,
+      files: fileIds.map(fileId => ({
+        type: 'document' as const,
+        transfer_method: 'local_file' as const,
+        upload_file_id: fileId
+      }))
+    };
+
+    return this.runWorkflow(request);
   }
 
   /**
