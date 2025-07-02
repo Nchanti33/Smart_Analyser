@@ -1,0 +1,130 @@
+<div class="upload-container">
+  <div class="upload-header">
+    <h2>📤 Téléchargement de Documents</h2>
+    <p>Formats acceptés: PDF, DOCX, TXT</p>
+  </div>
+
+  <!-- API Key Input -->
+  <div class="api-key-section">
+    <label for="apiKey">Clé API Dify:</label>
+    <input
+      id="apiKey"
+      type="password"
+      [(ngModel)]="apiKey"
+      placeholder="Entrez votre clé API Dify"
+      class="api-key-input"
+    />
+  </div>
+
+  <!-- Upload Zone -->
+  <div 
+    class="upload-zone"
+    [class.drag-over]="isDragOver()"
+    (dragover)="onDragOver($event)"
+    (dragleave)="onDragLeave($event)"
+    (drop)="onDrop($event)"
+    (click)="fileInput.click()"
+  >
+    <div class="upload-content">
+      <div class="upload-icon">📁</div>
+      <h3>Glissez-déposez vos fichiers ici</h3>
+      <p>ou cliquez pour sélectionner</p>
+      <div class="supported-formats">
+        <span class="format-badge">PDF</span>
+        <span class="format-badge">DOCX</span>
+        <span class="format-badge">TXT</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Hidden File Input -->
+  <input
+    #fileInput
+    type="file"
+    multiple
+    accept=".pdf,.docx,.doc,.txt"
+    (change)="onFileSelect($event)"
+    style="display: none;"
+  />
+
+  <!-- Uploaded Files List -->
+  @if (uploadedFiles().length > 0) {
+    <div class="files-section">
+      <div class="files-header">
+        <h3>Fichiers téléchargés ({{ uploadedFiles().length }})</h3>
+        <button 
+          class="clear-all-btn"
+          (click)="clearAllFiles()"
+          type="button"
+        >
+          🗑️ Tout supprimer
+        </button>
+      </div>
+
+      <div class="files-list">
+        @for (file of uploadedFiles(); track $index) {
+          <div class="file-item" [class]="file.status">
+            <div class="file-info">
+              <span class="file-icon">{{ getFileIcon(file.file.name) }}</span>
+              <div class="file-details">
+                <div class="file-name">{{ file.file.name }}</div>
+                <div class="file-size">{{ formatFileSize(file.file.size) }}</div>
+              </div>
+            </div>
+
+            <div class="file-status">
+              @switch (file.status) {
+                @case ('uploading') {
+                  <div class="progress-container">
+                    <div class="progress-bar">
+                      <div 
+                        class="progress-fill" 
+                        [style.width.%]="file.progress"
+                      ></div>
+                    </div>
+                    <span class="progress-text">{{ file.progress }}%</span>
+                  </div>
+                }
+                @case ('success') {
+                  <div class="status-success">
+                    <span class="status-icon">✅</span>
+                    <span>Téléchargé</span>
+                  </div>
+                }
+                @case ('error') {
+                  <div class="status-error">
+                    <span class="status-icon">❌</span>
+                    <span>{{ file.errorMessage || 'Erreur' }}</span>
+                  </div>
+                }
+              }
+            </div>
+
+            <button 
+              class="remove-btn"
+              (click)="removeFile($index)"
+              type="button"
+              title="Supprimer le fichier"
+            >
+              ✕
+            </button>
+          </div>
+        }
+      </div>
+
+      <!-- Summary -->
+      @if (getSuccessfulUploads().length > 0) {
+        <div class="upload-summary">
+          <div class="summary-item">
+            <span class="summary-label">Fichiers réussis:</span>
+            <span class="summary-value">{{ getSuccessfulUploads().length }}</span>
+          </div>
+          <div class="summary-item">
+            <span class="summary-label">Prêt pour traitement:</span>
+            <span class="summary-value success">✅</span>
+          </div>
+        </div>
+      }
+    </div>
+  }
+</div>
