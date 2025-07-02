@@ -4,6 +4,7 @@ import { UploadComponent } from './components/upload/upload-component';
 
 @Component({
   selector: 'app-root',
+  standalone: true,
   imports: [RouterOutlet, UploadComponent],
   templateUrl: './app.html',
   styleUrl: './app.css'
