@@ -84,7 +84,7 @@ export interface DocumentProcessingRequest {
   providedIn: 'root'
 })
 export class DifyService {
-  private readonly baseUrl = 'https://api.dify.ai/v1';
+  private readonly baseUrl = '/api'; // Utilise le proxy local
   private readonly apiKey = 'app-3l2yJBxafYta2TTNJAyC3OQ0';
 
   constructor(private http: HttpClient) {}
@@ -210,7 +210,7 @@ export class DifyService {
     try {
       console.log('📁 Step 1: Uploading file to Dify...');
       
-      // 1. Upload the file to Dify
+      // 1. Upload the file to Dify via proxy
       const uploadForm = new FormData();
       uploadForm.append('file', file);
       uploadForm.append('user', user);

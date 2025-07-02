@@ -1,0 +1,11 @@
+{
+  "/api/*": {
+    "target": "https://api.dify.ai",
+    "secure": true,
+    "changeOrigin": true,
+    "logLevel": "debug",
+    "pathRewrite": {
+      "^/api": "/v1"
+    }
+  }
+}
