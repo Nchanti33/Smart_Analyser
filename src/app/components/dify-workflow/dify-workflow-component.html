@@ -1,0 +1,134 @@
+<div class="dify-workflow-container">
+  <div class="header">
+    <h2>Dify Workflow Executor</h2>
+    <p>Execute workflows using the Dify API</p>
+  </div>
+
+  <div class="config-section">
+    <h3>Configuration</h3>
+    
+    <div class="form-group">
+      <label for="apiKey">API Key:</label>
+      <input 
+        type="password" 
+        id="apiKey" 
+        [(ngModel)]="apiKey" 
+        placeholder="Enter your Dify API key"
+        class="form-control"
+      />
+    </div>
+
+    <div class="form-group">
+      <label for="userId">User ID:</label>
+      <input 
+        type="text" 
+        id="userId" 
+        [(ngModel)]="userId" 
+        placeholder="Enter user identifier"
+        class="form-control"
+      />
+    </div>
+
+    <div class="form-group">
+      <label for="responseMode">Response Mode:</label>
+      <select id="responseMode" [(ngModel)]="responseMode" class="form-control">
+        <option value="streaming">Streaming</option>
+        <option value="blocking">Blocking</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="inputs-section">
+    <div class="section-header">
+      <h3>Workflow Inputs</h3>
+      <button type="button" (click)="addInput()" class="btn btn-secondary">
+        Add Input
+      </button>
+    </div>
+
+    <div class="inputs-list">
+      @if (getInputKeys().length === 0) {
+        <p class="no-inputs">No inputs defined. Click "Add Input" to add workflow parameters.</p>
+      }
+      
+      @for (key of getInputKeys(); track key) {
+        <div class="input-item">
+          <label [for]="'input-' + key">{{ key }}:</label>
+          <div class="input-controls">
+            <input 
+              [id]="'input-' + key"
+              type="text" 
+              [(ngModel)]="inputs[key]" 
+              [placeholder]="'Enter value for ' + key"
+              class="form-control"
+            />
+            <button 
+              type="button" 
+              (click)="removeInput(key)" 
+              class="btn btn-danger btn-sm"
+              title="Remove input"
+            >
+              ×
+            </button>
+          </div>
+        </div>
+      }
+    </div>
+  </div>
+
+  <div class="actions-section">
+    <button 
+      type="button" 
+      (click)="executeWorkflow()" 
+      [disabled]="isLoading || !apiKey.trim()"
+      class="btn btn-primary"
+    >
+      @if (isLoading) {
+        <span class="spinner"></span>
+        Executing...
+      } @else {
+        Execute Workflow
+      }
+    </button>
+
+    <button 
+      type="button" 
+      (click)="clearResults()" 
+      class="btn btn-secondary"
+      [disabled]="!result && streamEvents.length === 0 && !error"
+    >
+      Clear Results
+    </button>
+  </div>
+
+  @if (error) {
+    <div class="error-section">
+      <h3>Error</h3>
+      <div class="error-message">{{ error }}</div>
+    </div>
+  }
+
+  @if (result && responseMode === 'blocking') {
+    <div class="result-section">
+      <h3>Result (Blocking Mode)</h3>
+      <pre class="result-content">{{ result | json }}</pre>
+    </div>
+  }
+
+  @if (streamEvents.length > 0 && responseMode === 'streaming') {
+    <div class="stream-section">
+      <h3>Stream Events ({{ streamEvents.length }})</h3>
+      <div class="stream-events">
+        @for (event of streamEvents; track $index) {
+          <div class="stream-event" [class]="'event-' + event.event">
+            <div class="event-header">
+              <span class="event-type">{{ event.event }}</span>
+              <span class="event-id">{{ event.workflow_run_id }}</span>
+            </div>
+            <pre class="event-data">{{ event.data | json }}</pre>
+          </div>
+        }
+      </div>
+    </div>
+  }
+</div>
