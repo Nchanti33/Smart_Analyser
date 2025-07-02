@@ -4,6 +4,7 @@ import { DifyWorkflowComponent } from './components/dify-workflow.component';
 
 @Component({
   selector: 'app-root',
+  standalone: true,
   imports: [RouterOutlet, DifyWorkflowComponent],
   templateUrl: './app.html',
   styleUrl: './app.css'
