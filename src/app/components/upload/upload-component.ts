@@ -37,12 +37,23 @@ export class UploadComponent {
   constructor(private difyService: DifyService) {}
 
   onUploadZoneClick(): void {
+    if (this.hasUploadedFile()) {
+      alert('Vous ne pouvez télécharger qu\'un seul document à la fois. Veuillez supprimer le fichier actuel avant d\'en télécharger un nouveau.');
+      return;
+    }
+
     const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
     fileInput?.click();
   }
 
   onDragOver(event: DragEvent): void {
     event.preventDefault();
+    
+    if (this.hasUploadedFile()) {
+      event.dataTransfer!.dropEffect = 'none';
+      return;
+    }
+    
     this.isDragOver.set(true);
   }
 
@@ -55,11 +66,21 @@ export class UploadComponent {
     event.preventDefault();
     this.isDragOver.set(false);
     
+    if (this.hasUploadedFile()) {
+      alert('Vous ne pouvez télécharger qu\'un seul document à la fois. Veuillez supprimer le fichier actuel avant d\'en télécharger un nouveau.');
+      return;
+    }
+    
     const files = Array.from(event.dataTransfer?.files || []);
     this.handleFiles(files);
   }
 
   onFileSelect(event: Event): void {
+    if (this.hasUploadedFile()) {
+      alert('Vous ne pouvez télécharger qu\'un seul document à la fois. Veuillez supprimer le fichier actuel avant d\'en télécharger un nouveau.');
+      return;
+    }
+
     const input = event.target as HTMLInputElement;
     const files = Array.from(input.files || []);
     this.handleFiles(files);
@@ -69,22 +90,28 @@ export class UploadComponent {
   }
 
   private handleFiles(files: File[]): void {
-    const validFiles = files.filter(file => this.isValidFile(file));
+    if (files.length === 0) return;
+
+    // Take only the first file
+    const file = files[0];
     
-    if (validFiles.length !== files.length) {
-      alert('Certains fichiers ont été ignorés. Seuls les formats PDF, DOCX et TXT sont acceptés.');
+    if (!this.isValidFile(file)) {
+      alert('Format de fichier non supporté. Seuls les formats PDF, DOCX et TXT sont acceptés.');
+      return;
     }
 
-    validFiles.forEach(file => {
-      const uploadedFile: UploadedFile = {
-        file,
-        status: 'uploading',
-        progress: 0
-      };
+    if (files.length > 1) {
+      alert('Un seul fichier peut être téléchargé à la fois. Seul le premier fichier sera traité.');
+    }
 
-      this.uploadedFiles.update(files => [...files, uploadedFile]);
-      this.uploadFile(uploadedFile);
-    });
+    const uploadedFile: UploadedFile = {
+      file,
+      status: 'uploading',
+      progress: 0
+    };
+
+    this.uploadedFiles.set([uploadedFile]);
+    this.uploadFile(uploadedFile);
   }
 
   private isValidFile(file: File): boolean {
@@ -135,7 +162,7 @@ export class UploadComponent {
   processDocuments(): void {
     const successfulFiles = this.getSuccessfulUploads();
     if (successfulFiles.length === 0) {
-      alert('Aucun fichier à traiter. Veuillez d\'abord télécharger des fichiers.');
+      alert('Aucun fichier à traiter. Veuillez d\'abord télécharger un fichier.');
       return;
     }
 
@@ -156,11 +183,11 @@ export class UploadComponent {
       this.updateFileStatus(file, 'processing');
     });
 
-    const query = `Analysez ces ${fileIds.length} document(s) et fournissez:
+    const query = `Analysez ce document et fournissez:
 1. Un résumé détaillé du contenu
 2. Les points clés identifiés
 3. Les recommandations ou conclusions importantes
-4. Une synthèse globale si plusieurs documents sont analysés`;
+4. Une synthèse globale du document`;
 
     this.difyService.processDocuments(fileIds, query, this.defaultUserId)
       .subscribe({
@@ -176,7 +203,7 @@ export class UploadComponent {
         },
         error: (error) => {
           this.isProcessing.set(false);
-          const errorMessage = error.error?.message || 'Erreur lors du traitement des documents';
+          const errorMessage = error.error?.message || 'Erreur lors du traitement du document';
           this.analysisResult.set(`Erreur: ${errorMessage}`);
           
           // Revert files to success status
@@ -190,12 +217,17 @@ export class UploadComponent {
   }
 
   removeFile(index: number): void {
-    this.uploadedFiles.update(files => files.filter((_, i) => i !== index));
+    this.uploadedFiles.set([]);
+    this.analysisResult.set('');
   }
 
   clearAllFiles(): void {
     this.uploadedFiles.set([]);
     this.analysisResult.set('');
+  }
+
+  hasUploadedFile(): boolean {
+    return this.uploadedFiles().length > 0;
   }
 
   getFileIcon(fileName: string): string {

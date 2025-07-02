@@ -1,27 +1,34 @@
 <div class="upload-container">
   <div class="upload-header">
-    <h2>📤 Téléchargement de Documents</h2>
-    <p>Formats acceptés: PDF, DOCX, TXT</p>
+    <h2>📤 Téléchargement de Document</h2>
+    <p>Un seul document à la fois - Formats acceptés: PDF, DOCX, TXT</p>
   </div>
 
   <!-- Upload Zone -->
   <div 
     class="upload-zone"
-    [class.drag-over]="isDragOver()"
+    [class.drag-over]="isDragOver() && !hasUploadedFile()"
+    [class.disabled]="hasUploadedFile()"
     (dragover)="onDragOver($event)"
     (dragleave)="onDragLeave($event)"
     (drop)="onDrop($event)"
     (click)="onUploadZoneClick()"
   >
     <div class="upload-content">
-      <div class="upload-icon">📁</div>
-      <h3>Glissez-déposez vos fichiers ici</h3>
-      <p>ou cliquez pour sélectionner</p>
-      <div class="supported-formats">
-        <span class="format-badge">PDF</span>
-        <span class="format-badge">DOCX</span>
-        <span class="format-badge">TXT</span>
-      </div>
+      @if (!hasUploadedFile()) {
+        <div class="upload-icon">📁</div>
+        <h3>Glissez-déposez votre fichier ici</h3>
+        <p>ou cliquez pour sélectionner</p>
+        <div class="supported-formats">
+          <span class="format-badge">PDF</span>
+          <span class="format-badge">DOCX</span>
+          <span class="format-badge">TXT</span>
+        </div>
+      } @else {
+        <div class="upload-icon disabled">🔒</div>
+        <h3>Un document est déjà téléchargé</h3>
+        <p>Supprimez le fichier actuel pour en télécharger un nouveau</p>
+      }
     </div>
   </div>
 
@@ -29,17 +36,16 @@
   <input
     #fileInput
     type="file"
-    multiple
     accept=".pdf,.docx,.doc,.txt"
     (change)="onFileSelect($event)"
     style="display: none;"
   />
 
-  <!-- Uploaded Files List -->
+  <!-- Uploaded File -->
   @if (uploadedFiles().length > 0) {
     <div class="files-section">
       <div class="files-header">
-        <h3>📋 Fichiers téléchargés ({{ uploadedFiles().length }})</h3>
+        <h3>📋 Document téléchargé</h3>
         <div class="header-actions">
           @if (canProcessDocuments()) {
             <button 
@@ -51,7 +57,7 @@
               @if (isProcessing()) {
                 🔄 Traitement en cours...
               } @else {
-                🤖 Analyser les documents
+                🤖 Analyser le document
               }
             </button>
           }
@@ -60,7 +66,7 @@
             (click)="clearAllFiles()"
             type="button"
           >
-            🗑️ Tout supprimer
+            🗑️ Supprimer
           </button>
         </div>
       </div>
@@ -135,19 +141,20 @@
       @if (getSuccessfulUploads().length > 0) {
         <div class="upload-summary">
           <div class="summary-item">
-            <span class="summary-label">Fichiers réussis:</span>
-            <span class="summary-value">{{ getSuccessfulUploads().length }}</span>
+            <span class="summary-label">Document:</span>
+            <span class="summary-value">{{ uploadedFiles()[0].file.name }}</span>
           </div>
           @if (getProcessedFiles().length > 0) {
             <div class="summary-item">
-              <span class="summary-label">Fichiers analysés:</span>
-              <span class="summary-value success">{{ getProcessedFiles().length }}</span>
+              <span class="summary-label">Statut:</span>
+              <span class="summary-value success">Analysé ✅</span>
+            </div>
+          } @else {
+            <div class="summary-item">
+              <span class="summary-label">Statut:</span>
+              <span class="summary-value">Prêt pour analyse</span>
             </div>
           }
-          <div class="summary-item">
-            <span class="summary-label">Prêt pour traitement:</span>
-            <span class="summary-value success">✅</span>
-          </div>
         </div>
       }
     </div>
