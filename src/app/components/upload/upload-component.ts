@@ -23,7 +23,7 @@ export class UploadComponent {
   userId = signal('user-123');
   uploadedFiles = signal<UploadedFile[]>([]);
   isDragOver = signal(false);
-  showApiKey = signal(false);
+  protected showApiKey = signal(false);
 
   private readonly allowedTypes = [
     'application/pdf',
@@ -39,7 +39,7 @@ export class UploadComponent {
     this.apiKey.set(this.difyService.getDefaultApiKey());
   }
 
-  toggleApiKeyVisibility(): void {
+  protected toggleApiKeyVisibility(): void {
     this.showApiKey.update(show => !show);
     
     // Update input type
