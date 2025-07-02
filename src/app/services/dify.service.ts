@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { Observable, from } from 'rxjs';
 
 export interface DifyMessage {
   role: 'user' | 'assistant';
@@ -166,6 +166,153 @@ export class DifyService {
     };
 
     return this.runWorkflow(request);
+  }
+
+  /**
+   * Send document to external API with fallback strategies
+   * Adapté de la méthode externalApiService.ts
+   */
+  sendDocumentToExternalApi(
+    file: File,
+    user: string,
+    workflowVarName: string
+  ): Observable<any> {
+    return from(this.sendDocumentToExternalApiAsync(file, user, workflowVarName));
+  }
+
+  private async sendDocumentToExternalApiAsync(
+    file: File,
+    user: string,
+    workflowVarName: string
+  ): Promise<any> {
+    try {
+      // 1. Upload the file to Dify
+      const uploadForm = new FormData();
+      uploadForm.append('file', file);
+      uploadForm.append('user', user);
+
+      const uploadRes = await fetch(`${this.baseUrl}/files/upload`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${this.apiKey}`,
+        },
+        body: uploadForm,
+      });
+
+      if (!uploadRes.ok) {
+        const errText = await uploadRes.text();
+        console.error('File upload failed:', errText);
+        throw new Error('File upload failed: ' + errText);
+      }
+
+      const uploadData = await uploadRes.json();
+      const fileId = uploadData.id;
+
+      // 2. Run the workflow with the uploaded file using fallback strategies
+      let workflowBody: any;
+      let triedArray = false;
+      let triedDirectId = false;
+      let workflowRes: Response;
+      let workflowResult: any;
+
+      // Strategy 1: Try with single object (Dify doc alternative)
+      workflowBody = {
+        inputs: {
+          [workflowVarName]: {
+            transfer_method: 'local_file',
+            upload_file_id: fileId,
+            type: 'document',
+          },
+        },
+        response_mode: 'blocking',
+        user: user,
+      };
+
+      workflowRes = await fetch(`${this.baseUrl}/workflows/run`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${this.apiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(workflowBody),
+      });
+
+      if (!workflowRes.ok) {
+        const errText = await workflowRes.text();
+        console.error('Workflow execution failed (single object):', errText);
+
+        // Strategy 2: Try with array of objects
+        workflowBody = {
+          inputs: {
+            [workflowVarName]: [
+              {
+                transfer_method: 'local_file',
+                upload_file_id: fileId,
+                type: 'document',
+              },
+            ],
+          },
+          response_mode: 'blocking',
+          user: user,
+        };
+
+        triedArray = true;
+        workflowRes = await fetch(`${this.baseUrl}/workflows/run`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${this.apiKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(workflowBody),
+        });
+
+        if (!workflowRes.ok) {
+          const errText2 = await workflowRes.text();
+          console.error('Workflow execution failed (array of objects):', errText2);
+
+          // Strategy 3: Try with direct fileId
+          workflowBody = {
+            inputs: {
+              [workflowVarName]: fileId,
+            },
+            response_mode: 'blocking',
+            user: user,
+          };
+
+          triedDirectId = true;
+          workflowRes = await fetch(`${this.baseUrl}/workflows/run`, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${this.apiKey}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(workflowBody),
+          });
+
+          if (!workflowRes.ok) {
+            const errText3 = await workflowRes.text();
+            console.error('Workflow execution failed (direct fileId):', errText3);
+            throw new Error('Workflow execution failed: ' + errText3);
+          }
+        }
+      }
+
+      workflowResult = await workflowRes.json();
+
+      // Log which strategy worked
+      if (triedDirectId) {
+        console.log('Workflow succeeded with direct fileId strategy');
+      } else if (triedArray) {
+        console.log('Workflow succeeded with array of objects strategy');
+      } else {
+        console.log('Workflow succeeded with single object strategy');
+      }
+
+      return workflowResult;
+    } catch (error) {
+      console.error('sendDocumentToExternalApi error:', error);
+      throw error;
+    }
   }
 
   /**
