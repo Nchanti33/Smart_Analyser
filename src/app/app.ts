@@ -1,9 +1,10 @@
 import { Component } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
+import { DifyWorkflowComponent } from './components/dify-workflow.component';
 
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet],
+  imports: [RouterOutlet, DifyWorkflowComponent],
   templateUrl: './app.html',
   styleUrl: './app.css'
 })
