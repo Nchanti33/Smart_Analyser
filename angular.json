@@ -58,7 +58,9 @@
             },
             "development": {
               "buildTarget": "Smart_Analyser:build:development",
-              "proxyConfig": "proxy.conf.json"
+              "options": {
+                "proxyConfig": "proxy.conf.json"
+              }
             }
           },
           "defaultConfiguration": "development"
