@@ -23,6 +23,7 @@ export class UploadComponent {
   userId = signal('user-123');
   uploadedFiles = signal<UploadedFile[]>([]);
   isDragOver = signal(false);
+  showApiKey = signal(false);
 
   private readonly allowedTypes = [
     'application/pdf',
@@ -38,7 +39,32 @@ export class UploadComponent {
     this.apiKey.set(this.difyService.getDefaultApiKey());
   }
 
+  toggleApiKeyVisibility(): void {
+    this.showApiKey.update(show => !show);
+    
+    // Update input type
+    const input = document.getElementById('apiKey') as HTMLInputElement;
+    if (input) {
+      input.type = this.showApiKey() ? 'text' : 'password';
+    }
+  }
+
+  onUploadZoneClick(): void {
+    if (!this.apiKey() || !this.userId()) {
+      alert('Veuillez d\'abord remplir la clé API et l\'identifiant utilisateur.');
+      return;
+    }
+    
+    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
+    fileInput?.click();
+  }
+
   onDragOver(event: DragEvent): void {
+    if (!this.apiKey() || !this.userId()) {
+      event.dataTransfer!.dropEffect = 'none';
+      return;
+    }
+    
     event.preventDefault();
     this.isDragOver.set(true);
   }
@@ -52,11 +78,21 @@ export class UploadComponent {
     event.preventDefault();
     this.isDragOver.set(false);
     
+    if (!this.apiKey() || !this.userId()) {
+      alert('Veuillez d\'abord remplir la clé API et l\'identifiant utilisateur.');
+      return;
+    }
+    
     const files = Array.from(event.dataTransfer?.files || []);
     this.handleFiles(files);
   }
 
   onFileSelect(event: Event): void {
+    if (!this.apiKey() || !this.userId()) {
+      alert('Veuillez d\'abord remplir la clé API et l\'identifiant utilisateur.');
+      return;
+    }
+    
     const input = event.target as HTMLInputElement;
     const files = Array.from(input.files || []);
     this.handleFiles(files);
