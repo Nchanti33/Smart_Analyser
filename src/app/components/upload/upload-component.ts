@@ -1,6 +1,5 @@
 import { Component, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
 import { DifyService } from '../../services/dify.service';
 
 interface UploadedFile {
@@ -14,16 +13,13 @@ interface UploadedFile {
 @Component({
   selector: 'app-upload',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule],
   templateUrl: './upload-component.html',
   styleUrl: './upload-component.css'
 })
 export class UploadComponent {
-  apiKey = signal('');
-  userId = signal('user-123');
   uploadedFiles = signal<UploadedFile[]>([]);
   isDragOver = signal(false);
-  protected showApiKey = signal(false);
 
   private readonly allowedTypes = [
     'application/pdf',
@@ -33,38 +29,16 @@ export class UploadComponent {
   ];
 
   private readonly allowedExtensions = ['.pdf', '.docx', '.doc', '.txt'];
+  private readonly defaultUserId = 'user-123';
 
-  constructor(private difyService: DifyService) {
-    // Set the default API key from the service
-    this.apiKey.set(this.difyService.getDefaultApiKey());
-  }
-
-  protected toggleApiKeyVisibility(): void {
-    this.showApiKey.update(show => !show);
-    
-    // Update input type
-    const input = document.getElementById('apiKey') as HTMLInputElement;
-    if (input) {
-      input.type = this.showApiKey() ? 'text' : 'password';
-    }
-  }
+  constructor(private difyService: DifyService) {}
 
   onUploadZoneClick(): void {
-    if (!this.apiKey() || !this.userId()) {
-      alert('Veuillez d\'abord remplir la clé API et l\'identifiant utilisateur.');
-      return;
-    }
-    
     const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
     fileInput?.click();
   }
 
   onDragOver(event: DragEvent): void {
-    if (!this.apiKey() || !this.userId()) {
-      event.dataTransfer!.dropEffect = 'none';
-      return;
-    }
-    
     event.preventDefault();
     this.isDragOver.set(true);
   }
@@ -78,21 +52,11 @@ export class UploadComponent {
     event.preventDefault();
     this.isDragOver.set(false);
     
-    if (!this.apiKey() || !this.userId()) {
-      alert('Veuillez d\'abord remplir la clé API et l\'identifiant utilisateur.');
-      return;
-    }
-    
     const files = Array.from(event.dataTransfer?.files || []);
     this.handleFiles(files);
   }
 
   onFileSelect(event: Event): void {
-    if (!this.apiKey() || !this.userId()) {
-      alert('Veuillez d\'abord remplir la clé API et l\'identifiant utilisateur.');
-      return;
-    }
-    
     const input = event.target as HTMLInputElement;
     const files = Array.from(input.files || []);
     this.handleFiles(files);
@@ -135,8 +99,7 @@ export class UploadComponent {
       uploadedFile.progress = Math.min(uploadedFile.progress + 10, 90);
     }, 200);
 
-    const apiKey = this.apiKey() || undefined;
-    this.difyService.uploadFile(uploadedFile.file, this.userId(), apiKey)
+    this.difyService.uploadFile(uploadedFile.file, this.defaultUserId)
       .subscribe({
         next: (response) => {
           clearInterval(progressInterval);

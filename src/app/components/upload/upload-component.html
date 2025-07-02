@@ -4,102 +4,24 @@
     <p>Formats acceptés: PDF, DOCX, TXT</p>
   </div>
 
-  <!-- Configuration Section -->
-  <div class="config-section">
-    <h3>⚙️ Configuration</h3>
-    
-    <!-- API Key Input -->
-    <div class="form-group">
-      <label for="apiKey" class="form-label">
-        <span class="label-text">Clé API Dify</span>
-        <span class="label-required">*</span>
-      </label>
-      <div class="input-wrapper">
-        <input
-          id="apiKey"
-          type="password"
-          [(ngModel)]="apiKey"
-          placeholder="app-xxxxxxxxxxxxxxxxxxxxxxxxx"
-          class="form-input"
-          required
-        />
-        <button 
-          type="button" 
-          class="toggle-visibility-btn"
-          (click)="toggleApiKeyVisibility()"
-          [title]="showApiKey() ? 'Masquer la clé' : 'Afficher la clé'"
-        >
-          {{ showApiKey() ? '🙈' : '👁️' }}
-        </button>
-      </div>
-      <div class="form-help">
-        Votre clé API Dify pour authentifier les requêtes. 
-        <a href="https://docs.dify.ai/getting-started/install-self-hosted/docker-compose#access-your-dify-instance" target="_blank" class="help-link">
-          Comment obtenir votre clé API ?
-        </a>
-      </div>
-    </div>
-
-    <!-- User ID Input -->
-    <div class="form-group">
-      <label for="userId" class="form-label">
-        <span class="label-text">Identifiant utilisateur</span>
-        <span class="label-required">*</span>
-      </label>
-      <input
-        id="userId"
-        type="text"
-        [(ngModel)]="userId"
-        placeholder="user-123"
-        class="form-input"
-        required
-      />
-      <div class="form-help">
-        Identifiant unique pour associer les fichiers à votre session.
-      </div>
-    </div>
-
-    <!-- Connection Status -->
-    <div class="connection-status">
-      @if (apiKey() && userId()) {
-        <div class="status-indicator success">
-          <span class="status-icon">✅</span>
-          <span>Configuration complète</span>
-        </div>
-      } @else {
-        <div class="status-indicator warning">
-          <span class="status-icon">⚠️</span>
-          <span>Veuillez remplir tous les champs requis</span>
-        </div>
-      }
-    </div>
-  </div>
-
   <!-- Upload Zone -->
   <div 
     class="upload-zone"
     [class.drag-over]="isDragOver()"
-    [class.disabled]="!apiKey() || !userId()"
     (dragover)="onDragOver($event)"
     (dragleave)="onDragLeave($event)"
     (drop)="onDrop($event)"
     (click)="onUploadZoneClick()"
   >
     <div class="upload-content">
-      @if (apiKey() && userId()) {
-        <div class="upload-icon">📁</div>
-        <h3>Glissez-déposez vos fichiers ici</h3>
-        <p>ou cliquez pour sélectionner</p>
-        <div class="supported-formats">
-          <span class="format-badge">PDF</span>
-          <span class="format-badge">DOCX</span>
-          <span class="format-badge">TXT</span>
-        </div>
-      } @else {
-        <div class="upload-icon disabled">🔒</div>
-        <h3>Configuration requise</h3>
-        <p>Veuillez remplir la clé API et l'identifiant utilisateur ci-dessus</p>
-      }
+      <div class="upload-icon">📁</div>
+      <h3>Glissez-déposez vos fichiers ici</h3>
+      <p>ou cliquez pour sélectionner</p>
+      <div class="supported-formats">
+        <span class="format-badge">PDF</span>
+        <span class="format-badge">DOCX</span>
+        <span class="format-badge">TXT</span>
+      </div>
     </div>
   </div>
 

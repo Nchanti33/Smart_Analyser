@@ -72,14 +72,13 @@ export interface DifyWorkflowResponse {
 })
 export class DifyService {
   private readonly baseUrl = 'https://api.dify.ai/v1';
-  private readonly defaultApiKey = 'app-3l2yJBxafYta2TTNJAyC3OQ0';
+  private readonly apiKey = 'app-3l2yJBxafYta2TTNJAyC3OQ0';
 
   constructor(private http: HttpClient) {}
 
-  private getHeaders(apiKey?: string): HttpHeaders {
-    const key = apiKey || this.defaultApiKey;
+  private getHeaders(): HttpHeaders {
     return new HttpHeaders({
-      'Authorization': `Bearer ${key}`,
+      'Authorization': `Bearer ${this.apiKey}`,
       'Content-Type': 'application/json'
     });
   }
@@ -88,10 +87,9 @@ export class DifyService {
    * Send a conversation message to a Dify chatbot
    */
   sendConversationMessage(
-    request: DifyConversationRequest,
-    apiKey?: string
+    request: DifyConversationRequest
   ): Observable<DifyConversationResponse> {
-    const headers = this.getHeaders(apiKey);
+    const headers = this.getHeaders();
     return this.http.post<DifyConversationResponse>(
       `${this.baseUrl}/chat-messages`,
       request,
@@ -103,10 +101,9 @@ export class DifyService {
    * Run a Dify workflow
    */
   runWorkflow(
-    request: DifyWorkflowRequest,
-    apiKey?: string
+    request: DifyWorkflowRequest
   ): Observable<DifyWorkflowResponse> {
-    const headers = this.getHeaders(apiKey);
+    const headers = this.getHeaders();
     return this.http.post<DifyWorkflowResponse>(
       `${this.baseUrl}/workflows/run`,
       request,
@@ -121,10 +118,9 @@ export class DifyService {
     conversationId: string,
     user: string,
     firstId?: string,
-    limit: number = 20,
-    apiKey?: string
+    limit: number = 20
   ): Observable<any> {
-    const headers = this.getHeaders(apiKey);
+    const headers = this.getHeaders();
     let params = `user=${user}&limit=${limit}`;
     if (firstId) {
       params += `&first_id=${firstId}`;
@@ -143,10 +139,9 @@ export class DifyService {
     user: string,
     lastId?: string,
     limit: number = 20,
-    pinned?: boolean,
-    apiKey?: string
+    pinned?: boolean
   ): Observable<any> {
-    const headers = this.getHeaders(apiKey);
+    const headers = this.getHeaders();
     let params = `user=${user}&limit=${limit}`;
     if (lastId) {
       params += `&last_id=${lastId}`;
@@ -167,10 +162,9 @@ export class DifyService {
   renameConversation(
     conversationId: string,
     name: string,
-    user: string,
-    apiKey?: string
+    user: string
   ): Observable<any> {
-    const headers = this.getHeaders(apiKey);
+    const headers = this.getHeaders();
     return this.http.post(
       `${this.baseUrl}/conversations/${conversationId}/name`,
       { name, user },
@@ -183,10 +177,9 @@ export class DifyService {
    */
   deleteConversation(
     conversationId: string,
-    user: string,
-    apiKey?: string
+    user: string
   ): Observable<any> {
-    const headers = this.getHeaders(apiKey);
+    const headers = this.getHeaders();
     return this.http.delete(
       `${this.baseUrl}/conversations/${conversationId}?user=${user}`,
       { headers }
@@ -196,8 +189,8 @@ export class DifyService {
   /**
    * Get application parameters
    */
-  getApplicationParameters(user: string, apiKey?: string): Observable<any> {
-    const headers = this.getHeaders(apiKey);
+  getApplicationParameters(user: string): Observable<any> {
+    const headers = this.getHeaders();
     return this.http.get(
       `${this.baseUrl}/parameters?user=${user}`,
       { headers }
@@ -207,10 +200,9 @@ export class DifyService {
   /**
    * Upload a file
    */
-  uploadFile(file: File, user: string, apiKey?: string): Observable<any> {
-    const key = apiKey || this.defaultApiKey;
+  uploadFile(file: File, user: string): Observable<any> {
     const headers = new HttpHeaders({
-      'Authorization': `Bearer ${key}`
+      'Authorization': `Bearer ${this.apiKey}`
     });
 
     const formData = new FormData();
@@ -227,8 +219,8 @@ export class DifyService {
   /**
    * Get file upload status
    */
-  getFileUploadStatus(fileId: string, user: string, apiKey?: string): Observable<any> {
-    const headers = this.getHeaders(apiKey);
+  getFileUploadStatus(fileId: string, user: string): Observable<any> {
+    const headers = this.getHeaders();
     return this.http.get(
       `${this.baseUrl}/files/${fileId}?user=${user}`,
       { headers }
@@ -240,10 +232,9 @@ export class DifyService {
    */
   getWorkflowRunStatus(
     workflowRunId: string,
-    user: string,
-    apiKey?: string
+    user: string
   ): Observable<any> {
-    const headers = this.getHeaders(apiKey);
+    const headers = this.getHeaders();
     return this.http.get(
       `${this.baseUrl}/workflows/run/${workflowRunId}?user=${user}`,
       { headers }
@@ -255,21 +246,13 @@ export class DifyService {
    */
   stopWorkflowRun(
     workflowRunId: string,
-    user: string,
-    apiKey?: string
+    user: string
   ): Observable<any> {
-    const headers = this.getHeaders(apiKey);
+    const headers = this.getHeaders();
     return this.http.post(
       `${this.baseUrl}/workflows/run/${workflowRunId}/stop`,
       { user },
       { headers }
     );
-  }
-
-  /**
-   * Get the default API key
-   */
-  getDefaultApiKey(): string {
-    return this.defaultApiKey;
   }
 }
