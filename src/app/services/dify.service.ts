@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Observable, from } from 'rxjs';
+import { tap } from 'rxjs/operators';
 
 export interface DifyMessage {
   role: 'user' | 'assistant';
@@ -102,10 +103,16 @@ export class DifyService {
     request: DifyConversationRequest
   ): Observable<DifyConversationResponse> {
     const headers = this.getHeaders();
+    console.log('🚀 Sending conversation message:', request);
+    
     return this.http.post<DifyConversationResponse>(
       `${this.baseUrl}/chat-messages`,
       request,
       { headers }
+    ).pipe(
+      tap(response => {
+        console.log('✅ Conversation response received:', response);
+      })
     );
   }
 
@@ -129,6 +136,7 @@ export class DifyService {
       }))
     };
 
+    console.log('📄 Processing documents with request:', request);
     return this.sendConversationMessage(request);
   }
 
@@ -139,10 +147,16 @@ export class DifyService {
     request: DifyWorkflowRequest
   ): Observable<DifyWorkflowResponse> {
     const headers = this.getHeaders();
+    console.log('⚙️ Running workflow with request:', request);
+    
     return this.http.post<DifyWorkflowResponse>(
       `${this.baseUrl}/workflows/run`,
       request,
       { headers }
+    ).pipe(
+      tap(response => {
+        console.log('✅ Workflow response received:', response);
+      })
     );
   }
 
@@ -165,6 +179,7 @@ export class DifyService {
       }))
     };
 
+    console.log('📄⚙️ Running workflow with documents:', request);
     return this.runWorkflow(request);
   }
 
@@ -177,6 +192,13 @@ export class DifyService {
     user: string,
     workflowVarName: string
   ): Observable<any> {
+    console.log('📤 Starting document upload to external API:', {
+      fileName: file.name,
+      fileSize: file.size,
+      user: user,
+      workflowVarName: workflowVarName
+    });
+    
     return from(this.sendDocumentToExternalApiAsync(file, user, workflowVarName));
   }
 
@@ -186,6 +208,8 @@ export class DifyService {
     workflowVarName: string
   ): Promise<any> {
     try {
+      console.log('📁 Step 1: Uploading file to Dify...');
+      
       // 1. Upload the file to Dify
       const uploadForm = new FormData();
       uploadForm.append('file', file);
@@ -201,14 +225,17 @@ export class DifyService {
 
       if (!uploadRes.ok) {
         const errText = await uploadRes.text();
-        console.error('File upload failed:', errText);
+        console.error('❌ File upload failed:', errText);
         throw new Error('File upload failed: ' + errText);
       }
 
       const uploadData = await uploadRes.json();
+      console.log('✅ File uploaded successfully:', uploadData);
       const fileId = uploadData.id;
 
       // 2. Run the workflow with the uploaded file using fallback strategies
+      console.log('⚙️ Step 2: Running workflow with uploaded file...');
+      
       let workflowBody: any;
       let triedArray = false;
       let triedDirectId = false;
@@ -216,6 +243,7 @@ export class DifyService {
       let workflowResult: any;
 
       // Strategy 1: Try with single object (Dify doc alternative)
+      console.log('🔄 Strategy 1: Trying with single object...');
       workflowBody = {
         inputs: {
           [workflowVarName]: {
@@ -228,6 +256,8 @@ export class DifyService {
         user: user,
       };
 
+      console.log('📤 Workflow request body (Strategy 1):', workflowBody);
+
       workflowRes = await fetch(`${this.baseUrl}/workflows/run`, {
         method: 'POST',
         headers: {
@@ -239,9 +269,10 @@ export class DifyService {
 
       if (!workflowRes.ok) {
         const errText = await workflowRes.text();
-        console.error('Workflow execution failed (single object):', errText);
+        console.error('❌ Workflow execution failed (single object):', errText);
 
         // Strategy 2: Try with array of objects
+        console.log('🔄 Strategy 2: Trying with array of objects...');
         workflowBody = {
           inputs: {
             [workflowVarName]: [
@@ -256,6 +287,7 @@ export class DifyService {
           user: user,
         };
 
+        console.log('📤 Workflow request body (Strategy 2):', workflowBody);
         triedArray = true;
         workflowRes = await fetch(`${this.baseUrl}/workflows/run`, {
           method: 'POST',
@@ -268,9 +300,10 @@ export class DifyService {
 
         if (!workflowRes.ok) {
           const errText2 = await workflowRes.text();
-          console.error('Workflow execution failed (array of objects):', errText2);
+          console.error('❌ Workflow execution failed (array of objects):', errText2);
 
           // Strategy 3: Try with direct fileId
+          console.log('🔄 Strategy 3: Trying with direct fileId...');
           workflowBody = {
             inputs: {
               [workflowVarName]: fileId,
@@ -279,6 +312,7 @@ export class DifyService {
             user: user,
           };
 
+          console.log('📤 Workflow request body (Strategy 3):', workflowBody);
           triedDirectId = true;
           workflowRes = await fetch(`${this.baseUrl}/workflows/run`, {
             method: 'POST',
@@ -291,26 +325,27 @@ export class DifyService {
 
           if (!workflowRes.ok) {
             const errText3 = await workflowRes.text();
-            console.error('Workflow execution failed (direct fileId):', errText3);
+            console.error('❌ Workflow execution failed (direct fileId):', errText3);
             throw new Error('Workflow execution failed: ' + errText3);
           }
         }
       }
 
       workflowResult = await workflowRes.json();
+      console.log('✅ Workflow executed successfully:', workflowResult);
 
       // Log which strategy worked
       if (triedDirectId) {
-        console.log('Workflow succeeded with direct fileId strategy');
+        console.log('🎯 Workflow succeeded with direct fileId strategy');
       } else if (triedArray) {
-        console.log('Workflow succeeded with array of objects strategy');
+        console.log('🎯 Workflow succeeded with array of objects strategy');
       } else {
-        console.log('Workflow succeeded with single object strategy');
+        console.log('🎯 Workflow succeeded with single object strategy');
       }
 
       return workflowResult;
     } catch (error) {
-      console.error('sendDocumentToExternalApi error:', error);
+      console.error('💥 sendDocumentToExternalApi error:', error);
       throw error;
     }
   }
@@ -330,9 +365,15 @@ export class DifyService {
       params += `&first_id=${firstId}`;
     }
     
+    console.log('💬 Getting conversation messages:', { conversationId, user, firstId, limit });
+    
     return this.http.get(
       `${this.baseUrl}/messages?conversation_id=${conversationId}&${params}`,
       { headers }
+    ).pipe(
+      tap(response => {
+        console.log('✅ Conversation messages received:', response);
+      })
     );
   }
 
@@ -354,9 +395,15 @@ export class DifyService {
       params += `&pinned=${pinned}`;
     }
 
+    console.log('📋 Getting conversations:', { user, lastId, limit, pinned });
+
     return this.http.get(
       `${this.baseUrl}/conversations?${params}`,
       { headers }
+    ).pipe(
+      tap(response => {
+        console.log('✅ Conversations received:', response);
+      })
     );
   }
 
@@ -369,10 +416,16 @@ export class DifyService {
     user: string
   ): Observable<any> {
     const headers = this.getHeaders();
+    console.log('✏️ Renaming conversation:', { conversationId, name, user });
+    
     return this.http.post(
       `${this.baseUrl}/conversations/${conversationId}/name`,
       { name, user },
       { headers }
+    ).pipe(
+      tap(response => {
+        console.log('✅ Conversation renamed:', response);
+      })
     );
   }
 
@@ -384,9 +437,15 @@ export class DifyService {
     user: string
   ): Observable<any> {
     const headers = this.getHeaders();
+    console.log('🗑️ Deleting conversation:', { conversationId, user });
+    
     return this.http.delete(
       `${this.baseUrl}/conversations/${conversationId}?user=${user}`,
       { headers }
+    ).pipe(
+      tap(response => {
+        console.log('✅ Conversation deleted:', response);
+      })
     );
   }
 
@@ -395,9 +454,15 @@ export class DifyService {
    */
   getApplicationParameters(user: string): Observable<any> {
     const headers = this.getHeaders();
+    console.log('⚙️ Getting application parameters for user:', user);
+    
     return this.http.get(
       `${this.baseUrl}/parameters?user=${user}`,
       { headers }
+    ).pipe(
+      tap(response => {
+        console.log('✅ Application parameters received:', response);
+      })
     );
   }
 
@@ -413,10 +478,16 @@ export class DifyService {
     formData.append('file', file);
     formData.append('user', user);
 
+    console.log('📤 Uploading file:', { fileName: file.name, fileSize: file.size, user });
+
     return this.http.post(
       `${this.baseUrl}/files/upload`,
       formData,
       { headers }
+    ).pipe(
+      tap(response => {
+        console.log('✅ File uploaded successfully:', response);
+      })
     );
   }
 
@@ -425,9 +496,15 @@ export class DifyService {
    */
   getFileUploadStatus(fileId: string, user: string): Observable<any> {
     const headers = this.getHeaders();
+    console.log('📊 Getting file upload status:', { fileId, user });
+    
     return this.http.get(
       `${this.baseUrl}/files/${fileId}?user=${user}`,
       { headers }
+    ).pipe(
+      tap(response => {
+        console.log('✅ File upload status received:', response);
+      })
     );
   }
 
@@ -439,9 +516,15 @@ export class DifyService {
     user: string
   ): Observable<any> {
     const headers = this.getHeaders();
+    console.log('📊 Getting workflow run status:', { workflowRunId, user });
+    
     return this.http.get(
       `${this.baseUrl}/workflows/run/${workflowRunId}?user=${user}`,
       { headers }
+    ).pipe(
+      tap(response => {
+        console.log('✅ Workflow run status received:', response);
+      })
     );
   }
 
@@ -453,10 +536,16 @@ export class DifyService {
     user: string
   ): Observable<any> {
     const headers = this.getHeaders();
+    console.log('⏹️ Stopping workflow run:', { workflowRunId, user });
+    
     return this.http.post(
       `${this.baseUrl}/workflows/run/${workflowRunId}/stop`,
       { user },
       { headers }
+    ).pipe(
+      tap(response => {
+        console.log('✅ Workflow run stopped:', response);
+      })
     );
   }
 }
