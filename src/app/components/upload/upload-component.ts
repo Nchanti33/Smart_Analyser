@@ -44,7 +44,7 @@ export class UploadComponent {
   constructor(private difyService: DifyService) {}
 
   // Method to get upload zone classes (matching React cn() function)
-  getUploadZoneClasses(): string {
+  public getUploadZoneClasses(): string {
     const baseClasses = 'upload-zone-base';
     const dragClasses = this.isDragOver() && !this.hasUploadedFile() && !this.isProcessing() 
       ? 'border-primary bg-primary' 
