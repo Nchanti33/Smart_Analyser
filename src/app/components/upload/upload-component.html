@@ -1,118 +1,114 @@
 <div class="upload-container">
-  <div class="upload-header">
-    <h2>📤 Document Upload</h2>
-    <p>Upload and process documents with external API</p>
-  </div>
-
-  <!-- Configuration Section -->
-  <div class="config-section">
-    <div class="config-header">
-      <h3>⚙️ Configuration</h3>
+  <!-- Configuration Form -->
+  <div class="config-form">
+    <div class="form-group">
+      <input
+        type="text"
+        [(ngModel)]="user"
+        placeholder="User"
+        class="form-input"
+      />
     </div>
-    <div class="config-form">
-      <div class="form-group">
-        <label for="user">User:</label>
-        <input
-          id="user"
-          type="text"
-          [(ngModel)]="user"
-          placeholder="User"
-          class="form-input"
-        />
-      </div>
-      <div class="form-group">
-        <label for="workflowVarName">Workflow Variable Name:</label>
-        <input
-          id="workflowVarName"
-          type="text"
-          [(ngModel)]="workflowVarName"
-          placeholder="Workflow Variable Name"
-          class="form-input"
-        />
-      </div>
-      <div class="form-group">
-        <label for="workflowId">Workflow ID:</label>
-        <input
-          id="workflowId"
-          type="text"
-          [(ngModel)]="workflowId"
-          placeholder="Workflow ID"
-          class="form-input"
-        />
-      </div>
+    <div class="form-group">
+      <input
+        type="text"
+        [(ngModel)]="workflowVarName"
+        placeholder="Workflow Variable Name"
+        class="form-input"
+      />
+    </div>
+    <div class="form-group">
+      <input
+        type="text"
+        [(ngModel)]="workflowId"
+        placeholder="Workflow ID"
+        class="form-input"
+      />
     </div>
   </div>
 
-  <!-- Upload Zone -->
-  <div 
-    class="upload-zone"
-    [class.drag-over]="isDragOver() && !hasUploadedFile() && !isProcessing()"
-    [class.disabled]="hasUploadedFile() || isProcessing()"
-    (dragover)="onDragOver($event)"
-    (dragleave)="onDragLeave($event)"
-    (drop)="onDrop($event)"
-    (click)="onUploadZoneClick()"
-  >
-    <div class="upload-content">
-      @if (!hasUploadedFile()) {
-        <div class="upload-icon">📁</div>
-        <h3>Drag and drop your file here</h3>
-        <p>or click to browse</p>
-        <div class="supported-formats">
-          <span class="format-badge">PDF</span>
-          <span class="format-badge">DOCX</span>
-          <span class="format-badge">TXT</span>
-        </div>
-      } @else {
-        @if (uploadedFiles()[0]) {
+  <!-- Upload Card -->
+  <div class="upload-card">
+    <div class="upload-card-content">
+      <div 
+        class="upload-zone"
+        [class.drag-active]="isDragOver() && !hasUploadedFile() && !isProcessing()"
+        [class.has-file]="hasUploadedFile()"
+        [class.loading]="isProcessing()"
+        (dragover)="onDragOver($event)"
+        (dragleave)="onDragLeave($event)"
+        (drop)="onDrop($event)"
+      >
+        <!-- Hidden File Input -->
+        <input
+          #fileInput
+          id="file-upload"
+          type="file"
+          accept=".pdf,.docx,.doc,.txt"
+          (change)="onFileSelect($event)"
+          class="file-input"
+          [disabled]="isProcessing()"
+        />
+
+        @if (hasUploadedFile() && uploadedFiles()[0]) {
+          <!-- File Preview -->
           <div class="file-preview">
-            <span class="file-icon-large">{{ getFileIcon(uploadedFiles()[0].file.name) }}</span>
-            <div class="file-details">
-              <div class="file-name">{{ uploadedFiles()[0].file.name }}</div>
-              <div class="file-size">{{ formatFileSize(uploadedFiles()[0].file.size) }}</div>
-              @if (isProcessing()) {
-                <div class="processing-text">Processing document...</div>
-              }
+            <div class="file-icon-container">
+              {{ getFileIcon(uploadedFiles()[0].file.name) }}
             </div>
-            @if (!isProcessing()) {
+            <span class="file-name">{{ uploadedFiles()[0].file.name }}</span>
+            <span class="file-size">
+              {{ formatFileSize(uploadedFiles()[0].file.size) }}
+            </span>
+            @if (isProcessing()) {
+              <div class="processing-indicator">
+                Processing document...
+              </div>
+            } @else {
               <button 
-                class="remove-btn-inline"
-                (click)="removeFile()"
+                (click)="removeFile()" 
+                class="remove-button"
                 type="button"
-                title="Remove file"
               >
-                ✕
+                Remove
               </button>
             }
           </div>
+        } @else {
+          <!-- Upload Prompt -->
+          <div class="upload-prompt">
+            <div class="upload-icon">📁</div>
+            <h3 class="upload-title">Upload Document</h3>
+            <p class="upload-description">
+              Drag and drop your file here or click to browse
+            </p>
+            <p class="upload-formats">
+              Supports PDF, DOCX, and TXT files
+            </p>
+            <button 
+              (click)="fileInput.click()"
+              class="select-file-button"
+              [disabled]="isProcessing()"
+              type="button"
+            >
+              Select File
+            </button>
+          </div>
         }
-      }
+      </div>
     </div>
   </div>
-
-  <!-- Hidden File Input -->
-  <input
-    #fileInput
-    type="file"
-    accept=".pdf,.docx,.doc,.txt"
-    (change)="onFileSelect($event)"
-    style="display: none;"
-  />
 
   <!-- Upload Button -->
   @if (hasUploadedFile()) {
     <div class="upload-actions">
       <button 
-        class="upload-btn"
+        class="upload-document-button"
         (click)="handleFileUpload()"
         type="button"
         [disabled]="!canUpload()"
       >
-        @if (isProcessing()) {
-          🔄 Processing...
-        } @else {
-          📤 Upload Document
-        }
+        Upload Document
       </button>
     </div>
   }
