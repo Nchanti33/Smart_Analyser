@@ -1,3 +1,69 @@
+import { Injectable } from '@angular/core';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { Observable } from 'rxjs';
+
+export interface UploadResponse {
+  id: string;
+}
+
+export interface ProcessResponse {
+  answer: string;
+}
+
+@Injectable({
+  providedIn: 'root'
+})
+export class DifyService {
+  private readonly apiKey = 'Bearer app-3l2yJBxafYta2TTNJAyC3OQ0';
+  private readonly baseUrl = 'https://api.dify.ai/v1';
+  
+  // TODO: Replace with your actual workflow ID and variable names
+  private readonly workflowId = 'your-workflow-id';
+  private readonly workflowVarName = 'document';
+
+  constructor(private http: HttpClient) {}
+
+  uploadFile(file: File, user: string): Observable<UploadResponse> {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('user', user);
+
+    const headers = new HttpHeaders({
+      'Authorization': this.apiKey
+    });
+
+    return this.http.post<UploadResponse>(`${this.baseUrl}/files/upload`, formData, { headers });
+  }
+
+  processDocuments(fileIds: string[], query: string, user: string): Observable<ProcessResponse> {
+    const headers = new HttpHeaders({
+      'Authorization': this.apiKey,
+      'Content-Type': 'application/json'
+    });
+
+    // Try different payload formats as in the original function
+    const workflowBody = {
+      inputs: {
+        [this.workflowVarName]: fileIds.length === 1 ? {
+          transfer_method: 'local_file',
+          upload_file_id: fileIds[0],
+          type: 'document'
+        } : fileIds.map(id => ({
+          transfer_method: 'local_file',
+          upload_file_id: id,
+          type: 'document'
+        })),
+        query: query
+      },
+      response_mode: 'blocking',
+      user: user
+    };
+
+    return this.http.post<ProcessResponse>(`${this.baseUrl}/workflows/run`, workflowBody, { headers });
+  }
+}
+
+// Keep the original function for backward compatibility if needed
 export async function sendDocumentToExternalApi(
   file: File,
   user: string,
@@ -104,8 +170,11 @@ export async function sendDocumentToExternalApi(
     }
     workflowResult = await workflowRes.json();
     if (triedDirectId) {
+      console.log("Succeeded with direct fileId");
     } else if (triedArray) {
+      console.log("Succeeded with array of objects");
     } else {
+      console.log("Succeeded with single object");
     }
     return workflowResult;
   } catch (error) {

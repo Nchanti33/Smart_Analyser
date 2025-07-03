@@ -1,6 +1,7 @@
 import { Component, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { DifyService } from '../../services/dify.service';
+import { HttpErrorResponse } from '@angular/common/http';
+import { DifyService, UploadResponse, ProcessResponse } from '../../services/dify.service';
 
 interface UploadedFile {
   file: File;
@@ -158,14 +159,14 @@ export class UploadComponent {
 
     this.difyService.uploadFile(uploadedFile.file, this.defaultUserId)
       .subscribe({
-        next: (response) => {
+        next: (response: UploadResponse) => {
           console.log('✅ Upload successful:', response);
           clearInterval(progressInterval);
           uploadedFile.progress = 100;
           uploadedFile.id = response.id;
           this.updateFileStatus(uploadedFile, 'success');
         },
-        error: (error) => {
+        error: (error: HttpErrorResponse) => {
           console.error('❌ Upload failed:', error);
           clearInterval(progressInterval);
           
@@ -270,7 +271,7 @@ export class UploadComponent {
 
     this.difyService.processDocuments(fileIds, query, this.defaultUserId)
       .subscribe({
-        next: (response) => {
+        next: (response: ProcessResponse) => {
           console.log('✅ Document processing successful:', response);
           this.isProcessing.set(false);
           this.analysisResult.set(response.answer);
@@ -281,7 +282,7 @@ export class UploadComponent {
             this.updateFileStatus(file, 'processed');
           });
         },
-        error: (error) => {
+        error: (error: HttpErrorResponse) => {
           console.error('❌ Document processing failed:', error);
           this.isProcessing.set(false);
           
