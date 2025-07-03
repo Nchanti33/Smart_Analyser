@@ -1,5 +1,6 @@
 import { Component, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { HttpErrorResponse } from '@angular/common/http';
 import { DifyService, UploadResponse, ProcessResponse } from '../../services/dify.service';
 
@@ -15,7 +16,7 @@ interface UploadedFile {
 @Component({
   selector: 'app-upload',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, FormsModule],
   templateUrl: './upload-component.html',
   styleUrl: './upload-component.css'
 })
@@ -25,6 +26,11 @@ export class UploadComponent {
   isProcessing = signal(false);
   analysisResult = signal<string>('');
 
+  // Configuration fields
+  user = signal<string>('user-123');
+  workflowVarName = signal<string>('document');
+  workflowId = signal<string>('');
+
   private readonly allowedTypes = [
     'application/pdf',
     'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
@@ -33,7 +39,6 @@ export class UploadComponent {
   ];
 
   private readonly allowedExtensions = ['.pdf', '.docx', '.doc', '.txt'];
-  private readonly defaultUserId = 'user-123';
 
   constructor(private difyService: DifyService) {}
 
@@ -157,7 +162,7 @@ export class UploadComponent {
       }
     }, 200);
 
-    this.difyService.uploadFile(uploadedFile.file, this.defaultUserId)
+    this.difyService.uploadFile(uploadedFile.file, this.user())
       .subscribe({
         next: (response: UploadResponse) => {
           console.log('✅ Upload successful:', response);
@@ -232,6 +237,22 @@ export class UploadComponent {
   processDocuments(): void {
     console.log('🤖 Starting document processing...');
     
+    // Validation des champs requis
+    if (!this.user().trim()) {
+      alert('Veuillez saisir un nom d\'utilisateur.');
+      return;
+    }
+
+    if (!this.workflowVarName().trim()) {
+      alert('Veuillez saisir le nom de la variable du workflow.');
+      return;
+    }
+
+    if (!this.workflowId().trim()) {
+      alert('Veuillez saisir l\'ID du workflow.');
+      return;
+    }
+    
     const successfulFiles = this.getSuccessfulUploads();
     if (successfulFiles.length === 0) {
       const errorMsg = 'Aucun fichier à traiter. Veuillez d\'abord télécharger un fichier.';
@@ -240,18 +261,14 @@ export class UploadComponent {
       return;
     }
 
-    const fileIds = successfulFiles
-      .map(file => file.id)
-      .filter(id => id !== undefined) as string[];
-
-    if (fileIds.length === 0) {
-      const errorMsg = 'Aucun ID de fichier disponible pour le traitement.';
-      console.error('❌', errorMsg);
-      alert(errorMsg);
-      return;
-    }
-
-    console.log('📄 Processing files with IDs:', fileIds);
+    const file = successfulFiles[0].file;
+    
+    console.log('📄 Processing file with configuration:', {
+      fileName: file.name,
+      user: this.user(),
+      workflowVarName: this.workflowVarName(),
+      workflowId: this.workflowId()
+    });
 
     this.isProcessing.set(true);
     this.analysisResult.set('');
@@ -261,49 +278,54 @@ export class UploadComponent {
       this.updateFileStatus(file, 'processing');
     });
 
-    const query = `Analysez ce document et fournissez:
-1. Un résumé détaillé du contenu
-2. Les points clés identifiés
-3. Les recommandations ou conclusions importantes
-4. Une synthèse globale du document`;
-
-    console.log('📤 Sending processing request with query:', query);
-
-    this.difyService.processDocuments(fileIds, query, this.defaultUserId)
-      .subscribe({
-        next: (response: ProcessResponse) => {
-          console.log('✅ Document processing successful:', response);
-          this.isProcessing.set(false);
-          this.analysisResult.set(response.answer);
-          
-          // Mark files as processed
-          successfulFiles.forEach(file => {
-            file.analysisResult = response.answer;
-            this.updateFileStatus(file, 'processed');
-          });
-        },
-        error: (error: HttpErrorResponse) => {
-          console.error('❌ Document processing failed:', error);
-          this.isProcessing.set(false);
-          
-          let errorMessage = 'Erreur lors du traitement du document';
-          
-          if (error.error?.message) {
-            errorMessage = error.error.message;
-          } else if (error.message) {
-            errorMessage = error.message;
-          }
-          
-          this.analysisResult.set(`Erreur: ${errorMessage}`);
-          
-          // Revert files to success status
-          successfulFiles.forEach(file => {
-            this.updateFileStatus(file, 'success');
-          });
-          
-          alert(`Erreur lors du traitement: ${errorMessage}`);
+    // Use the external API service function directly
+    this.difyService.sendDocumentToExternalApi(
+      file,
+      this.user(),
+      this.workflowVarName()
+    ).subscribe({
+      next: (response: any) => {
+        console.log('✅ Document processing successful:', response);
+        this.isProcessing.set(false);
+        
+        // Extract the answer from the workflow response
+        let analysisText = '';
+        if (response.data && response.data.outputs) {
+          // Try to find the output text in various possible fields
+          const outputs = response.data.outputs;
+          analysisText = outputs.text || outputs.result || outputs.answer || JSON.stringify(outputs, null, 2);
+        } else {
+          analysisText = JSON.stringify(response, null, 2);
         }
-      });
+        
+        this.analysisResult.set(analysisText);
+        
+        // Mark files as processed
+        successfulFiles.forEach(file => {
+          file.analysisResult = analysisText;
+          this.updateFileStatus(file, 'processed');
+        });
+      },
+      error: (error: any) => {
+        console.error('❌ Document processing failed:', error);
+        this.isProcessing.set(false);
+        
+        let errorMessage = 'Erreur lors du traitement du document';
+        
+        if (error.message) {
+          errorMessage = error.message;
+        }
+        
+        this.analysisResult.set(`Erreur: ${errorMessage}`);
+        
+        // Revert files to success status
+        successfulFiles.forEach(file => {
+          this.updateFileStatus(file, 'success');
+        });
+        
+        alert(`Erreur lors du traitement: ${errorMessage}`);
+      }
+    });
   }
 
   removeFile(index: number): void {
@@ -358,6 +380,10 @@ export class UploadComponent {
   }
 
   canProcessDocuments(): boolean {
-    return this.getSuccessfulUploads().length > 0 && !this.isProcessing();
+    return this.getSuccessfulUploads().length > 0 && 
+           !this.isProcessing() && 
+           this.user().trim() !== '' && 
+           this.workflowVarName().trim() !== '' && 
+           this.workflowId().trim() !== '';
   }
 }
