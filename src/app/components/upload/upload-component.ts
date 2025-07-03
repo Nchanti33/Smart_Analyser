@@ -43,13 +43,16 @@ export class UploadComponent {
 
   constructor(private difyService: DifyService) {}
 
-  onUploadZoneClick(): void {
-    if (this.hasUploadedFile()) {
-      return;
-    }
-
-    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
-    fileInput?.click();
+  // Method to get upload zone classes (matching React cn() function)
+  getUploadZoneClasses(): string {
+    const baseClasses = 'upload-zone-base';
+    const dragClasses = this.isDragOver() && !this.hasUploadedFile() && !this.isProcessing() 
+      ? 'border-primary bg-primary' 
+      : 'border-muted-foreground';
+    const fileClasses = this.hasUploadedFile() ? 'border-green-500 bg-green-500' : '';
+    const loadingClasses = this.isProcessing() ? 'opacity-50 cursor-not-allowed' : '';
+    
+    return `${baseClasses} ${dragClasses} ${fileClasses} ${loadingClasses}`.trim();
   }
 
   onDragOver(event: DragEvent): void {

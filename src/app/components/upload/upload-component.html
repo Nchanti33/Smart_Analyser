@@ -27,16 +27,14 @@
     </div>
   </div>
 
-  <!-- Upload Card -->
-  <div class="upload-card">
-    <div class="upload-card-content">
+  <!-- Card Component (matching React Card) -->
+  <div class="card w-full">
+    <div class="card-content p-6">
       <div 
-        class="upload-zone"
-        [class.drag-active]="isDragOver() && !hasUploadedFile() && !isProcessing()"
-        [class.has-file]="hasUploadedFile()"
-        [class.loading]="isProcessing()"
-        (dragover)="onDragOver($event)"
+        [class]="getUploadZoneClasses()"
+        (dragenter)="onDragOver($event)"
         (dragleave)="onDragLeave($event)"
+        (dragover)="onDragOver($event)"
         (drop)="onDrop($event)"
       >
         <!-- Hidden File Input -->
@@ -46,28 +44,28 @@
           type="file"
           accept=".pdf,.docx,.doc,.txt"
           (change)="onFileSelect($event)"
-          class="file-input"
+          class="hidden"
           [disabled]="isProcessing()"
         />
 
         @if (hasUploadedFile() && uploadedFiles()[0]) {
-          <!-- File Preview -->
-          <div class="file-preview">
-            <div class="file-icon-container">
+          <!-- File Preview (matching React file preview) -->
+          <div class="flex flex-col items-center space-y-2">
+            <div class="file-icon">
               {{ getFileIcon(uploadedFiles()[0].file.name) }}
             </div>
-            <span class="file-name">{{ uploadedFiles()[0].file.name }}</span>
-            <span class="file-size">
-              {{ formatFileSize(uploadedFiles()[0].file.size) }}
+            <span class="text-sm font-medium">{{ uploadedFiles()[0].file.name }}</span>
+            <span class="text-xs text-muted-foreground">
+              {{ (uploadedFiles()[0].file.size / 1024 / 1024).toFixed(2) }} MB
             </span>
             @if (isProcessing()) {
-              <div class="processing-indicator">
+              <div class="mt-2 text-sm text-muted-foreground animate-pulse">
                 Processing document...
               </div>
             } @else {
               <button 
                 (click)="removeFile()" 
-                class="remove-button"
+                class="btn btn-outline btn-sm mt-2"
                 type="button"
               >
                 Remove
@@ -75,19 +73,19 @@
             }
           </div>
         } @else {
-          <!-- Upload Prompt -->
-          <div class="upload-prompt">
-            <div class="upload-icon">📁</div>
-            <h3 class="upload-title">Upload Document</h3>
-            <p class="upload-description">
+          <!-- Upload Prompt (matching React upload prompt) -->
+          <div class="upload-prompt-content">
+            <div class="upload-icon mb-4 h-10 w-10 text-muted-foreground">📁</div>
+            <h3 class="text-lg font-semibold">Upload Document</h3>
+            <p class="mb-4 mt-2 text-sm text-muted-foreground text-center">
               Drag and drop your file here or click to browse
             </p>
-            <p class="upload-formats">
+            <p class="text-xs text-muted-foreground">
               Supports PDF, DOCX, and TXT files
             </p>
             <button 
               (click)="fileInput.click()"
-              class="select-file-button"
+              class="btn btn-primary mt-4"
               [disabled]="isProcessing()"
               type="button"
             >
@@ -103,7 +101,7 @@
   @if (hasUploadedFile()) {
     <div class="upload-actions">
       <button 
-        class="upload-document-button"
+        class="btn btn-success"
         (click)="handleFileUpload()"
         type="button"
         [disabled]="!canUpload()"
