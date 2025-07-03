@@ -84,8 +84,8 @@ export interface DocumentProcessingRequest {
   providedIn: 'root'
 })
 export class DifyService {
-  private readonly baseUrl = '/api'; // Utilise le proxy local
-  private readonly apiKey = 'app-3l2yJBxafYta2TTNJAyC3OQ0';
+  private readonly baseUrl = 'https://api.dify.ai/v1'; // Real Dify API URL
+  private readonly apiKey = 'app-3l2yJBxafYta2TTNJAyC3OQ0'; // Your actual API key
 
   constructor(private http: HttpClient) {}
 
@@ -185,7 +185,6 @@ export class DifyService {
 
   /**
    * Send document to external API with fallback strategies
-   * Adapté de la méthode externalApiService.ts
    */
   sendDocumentToExternalApi(
     file: File,
@@ -210,7 +209,7 @@ export class DifyService {
     try {
       console.log('📁 Step 1: Uploading file to Dify...');
       
-      // 1. Upload the file to Dify via proxy
+      // 1. Upload the file to Dify
       const uploadForm = new FormData();
       uploadForm.append('file', file);
       uploadForm.append('user', user);
