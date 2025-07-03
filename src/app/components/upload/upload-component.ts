@@ -2,7 +2,7 @@ import { Component, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpErrorResponse } from '@angular/common/http';
-import { DifyService, UploadResponse, ProcessResponse } from '../../services/dify.service';
+import { DifyService } from '../../services/dify.service';
 
 interface UploadedFile {
   file: File;
@@ -21,14 +21,15 @@ interface UploadedFile {
   styleUrl: './upload-component.css'
 })
 export class UploadComponent {
+  // File management
   uploadedFiles = signal<UploadedFile[]>([]);
   isDragOver = signal(false);
   isProcessing = signal(false);
   analysisResult = signal<string>('');
 
-  // Configuration fields
-  user = signal<string>('user-123');
-  workflowVarName = signal<string>('document');
+  // Configuration fields (matching React component)
+  user = signal<string>('');
+  workflowVarName = signal<string>('');
   workflowId = signal<string>('');
 
   private readonly allowedTypes = [
@@ -44,7 +45,6 @@ export class UploadComponent {
 
   onUploadZoneClick(): void {
     if (this.hasUploadedFile()) {
-      alert('Vous ne pouvez télécharger qu\'un seul document à la fois. Veuillez supprimer le fichier actuel avant d\'en télécharger un nouveau.');
       return;
     }
 
@@ -54,8 +54,9 @@ export class UploadComponent {
 
   onDragOver(event: DragEvent): void {
     event.preventDefault();
+    event.stopPropagation();
     
-    if (this.hasUploadedFile()) {
+    if (this.hasUploadedFile() || this.isProcessing()) {
       event.dataTransfer!.dropEffect = 'none';
       return;
     }
@@ -65,15 +66,16 @@ export class UploadComponent {
 
   onDragLeave(event: DragEvent): void {
     event.preventDefault();
+    event.stopPropagation();
     this.isDragOver.set(false);
   }
 
   onDrop(event: DragEvent): void {
     event.preventDefault();
+    event.stopPropagation();
     this.isDragOver.set(false);
     
-    if (this.hasUploadedFile()) {
-      alert('Vous ne pouvez télécharger qu\'un seul document à la fois. Veuillez supprimer le fichier actuel avant d\'en télécharger un nouveau.');
+    if (this.hasUploadedFile() || this.isProcessing()) {
       return;
     }
     
@@ -82,8 +84,7 @@ export class UploadComponent {
   }
 
   onFileSelect(event: Event): void {
-    if (this.hasUploadedFile()) {
-      alert('Vous ne pouvez télécharger qu\'un seul document à la fois. Veuillez supprimer le fichier actuel avant d\'en télécharger un nouveau.');
+    if (this.hasUploadedFile() || this.isProcessing()) {
       return;
     }
 
@@ -104,8 +105,7 @@ export class UploadComponent {
     console.log('📁 Handling file:', {
       name: file.name,
       size: file.size,
-      type: file.type,
-      lastModified: file.lastModified
+      type: file.type
     });
     
     if (!this.isValidFile(file)) {
@@ -115,20 +115,14 @@ export class UploadComponent {
       return;
     }
 
-    if (files.length > 1) {
-      console.warn('⚠️ Multiple files detected, only processing the first one');
-      alert('Un seul fichier peut être téléchargé à la fois. Seul le premier fichier sera traité.');
-    }
-
     const uploadedFile: UploadedFile = {
       file,
-      status: 'uploading',
-      progress: 0
+      status: 'success', // Set directly to success for immediate processing
+      progress: 100
     };
 
-    console.log('✅ File validation passed, starting upload...');
+    console.log('✅ File validation passed');
     this.uploadedFiles.set([uploadedFile]);
-    this.uploadFile(uploadedFile);
   }
 
   private isValidFile(file: File): boolean {
@@ -137,127 +131,31 @@ export class UploadComponent {
       file.name.toLowerCase().endsWith(ext)
     );
     
-    console.log('🔍 File validation:', {
-      fileName: file.name,
-      fileType: file.type,
-      isValidType,
-      hasValidExtension,
-      allowedTypes: this.allowedTypes,
-      allowedExtensions: this.allowedExtensions
-    });
-    
     return isValidType || hasValidExtension;
   }
 
-  private uploadFile(uploadedFile: UploadedFile): void {
-    console.log('🚀 Starting file upload process...');
+  handleFileUpload(): void {
+    console.log('🤖 Starting document upload and processing...');
     
-    // Simulate progress
-    const progressInterval = setInterval(() => {
-      if (uploadedFile.progress < 90) {
-        uploadedFile.progress = Math.min(uploadedFile.progress + 10, 90);
-        console.log(`📊 Upload progress: ${uploadedFile.progress}%`);
-        // Trigger change detection
-        this.uploadedFiles.update(files => [...files]);
-      }
-    }, 200);
-
-    this.difyService.uploadFile(uploadedFile.file, this.user())
-      .subscribe({
-        next: (response: UploadResponse) => {
-          console.log('✅ Upload successful:', response);
-          clearInterval(progressInterval);
-          uploadedFile.progress = 100;
-          uploadedFile.id = response.id;
-          this.updateFileStatus(uploadedFile, 'success');
-        },
-        error: (error: HttpErrorResponse) => {
-          console.error('❌ Upload failed:', error);
-          clearInterval(progressInterval);
-          
-          let errorMessage = 'Erreur lors du téléchargement';
-          
-          // Analyse détaillée de l'erreur
-          if (error.status) {
-            console.error('HTTP Status:', error.status);
-            console.error('HTTP Status Text:', error.statusText);
-          }
-          
-          if (error.error) {
-            console.error('Error details:', error.error);
-            if (typeof error.error === 'string') {
-              errorMessage = error.error;
-            } else if (error.error.message) {
-              errorMessage = error.error.message;
-            } else if (error.error.detail) {
-              errorMessage = error.error.detail;
-            }
-          }
-          
-          if (error.message) {
-            console.error('Error message:', error.message);
-            errorMessage = error.message;
-          }
-          
-          // Erreurs spécifiques
-          if (error.status === 0) {
-            errorMessage = 'Impossible de se connecter au serveur. Vérifiez votre connexion internet.';
-          } else if (error.status === 401) {
-            errorMessage = 'Erreur d\'authentification. Clé API invalide.';
-          } else if (error.status === 413) {
-            errorMessage = 'Fichier trop volumineux. Taille maximale dépassée.';
-          } else if (error.status === 415) {
-            errorMessage = 'Type de fichier non supporté par le serveur.';
-          } else if (error.status >= 500) {
-            errorMessage = 'Erreur serveur. Veuillez réessayer plus tard.';
-          }
-          
-          console.error('Final error message:', errorMessage);
-          this.updateFileStatus(uploadedFile, 'error', errorMessage);
-        }
-      });
-  }
-
-  private updateFileStatus(
-    uploadedFile: UploadedFile, 
-    status: 'uploading' | 'success' | 'error' | 'processing' | 'processed',
-    errorMessage?: string
-  ): void {
-    console.log(`📝 Updating file status to: ${status}`, errorMessage ? `Error: ${errorMessage}` : '');
-    
-    uploadedFile.status = status;
-    if (errorMessage) {
-      uploadedFile.errorMessage = errorMessage;
-    }
-    
-    // Trigger change detection
-    this.uploadedFiles.update(files => [...files]);
-  }
-
-  processDocuments(): void {
-    console.log('🤖 Starting document processing...');
-    
-    // Validation des champs requis
+    // Validation des champs requis (matching React component requirements)
     if (!this.user().trim()) {
-      alert('Veuillez saisir un nom d\'utilisateur.');
+      alert('Please provide User field.');
       return;
     }
 
     if (!this.workflowVarName().trim()) {
-      alert('Veuillez saisir le nom de la variable du workflow.');
+      alert('Please provide Workflow Variable Name field.');
       return;
     }
 
     if (!this.workflowId().trim()) {
-      alert('Veuillez saisir l\'ID du workflow.');
+      alert('Please provide Workflow ID field.');
       return;
     }
     
     const successfulFiles = this.getSuccessfulUploads();
     if (successfulFiles.length === 0) {
-      const errorMsg = 'Aucun fichier à traiter. Veuillez d\'abord télécharger un fichier.';
-      console.error('❌', errorMsg);
-      alert(errorMsg);
+      alert('Please select a file first.');
       return;
     }
 
@@ -278,7 +176,7 @@ export class UploadComponent {
       this.updateFileStatus(file, 'processing');
     });
 
-    // Use the external API service function directly
+    // Use the external API service function (matching React component behavior)
     this.difyService.sendDocumentToExternalApi(
       file,
       this.user(),
@@ -291,7 +189,6 @@ export class UploadComponent {
         // Extract the answer from the workflow response
         let analysisText = '';
         if (response.data && response.data.outputs) {
-          // Try to find the output text in various possible fields
           const outputs = response.data.outputs;
           analysisText = outputs.text || outputs.result || outputs.answer || JSON.stringify(outputs, null, 2);
         } else {
@@ -310,32 +207,39 @@ export class UploadComponent {
         console.error('❌ Document processing failed:', error);
         this.isProcessing.set(false);
         
-        let errorMessage = 'Erreur lors du traitement du document';
-        
+        let errorMessage = 'Error sending document to external API';
         if (error.message) {
           errorMessage = error.message;
         }
         
-        this.analysisResult.set(`Erreur: ${errorMessage}`);
+        this.analysisResult.set(`Error: ${errorMessage}`);
         
         // Revert files to success status
         successfulFiles.forEach(file => {
           this.updateFileStatus(file, 'success');
         });
         
-        alert(`Erreur lors du traitement: ${errorMessage}`);
+        console.error('Error sending document to external API:', errorMessage);
       }
     });
   }
 
-  removeFile(index: number): void {
-    console.log('🗑️ Removing file at index:', index);
-    this.uploadedFiles.set([]);
-    this.analysisResult.set('');
+  private updateFileStatus(
+    uploadedFile: UploadedFile, 
+    status: 'uploading' | 'success' | 'error' | 'processing' | 'processed',
+    errorMessage?: string
+  ): void {
+    uploadedFile.status = status;
+    if (errorMessage) {
+      uploadedFile.errorMessage = errorMessage;
+    }
+    
+    // Trigger change detection
+    this.uploadedFiles.update(files => [...files]);
   }
 
-  clearAllFiles(): void {
-    console.log('🗑️ Clearing all files');
+  removeFile(): void {
+    console.log('🗑️ Removing file');
     this.uploadedFiles.set([]);
     this.analysisResult.set('');
   }
@@ -375,15 +279,11 @@ export class UploadComponent {
     );
   }
 
-  getProcessedFiles(): UploadedFile[] {
-    return this.uploadedFiles().filter(file => file.status === 'processed');
-  }
-
-  canProcessDocuments(): boolean {
-    return this.getSuccessfulUploads().length > 0 && 
-           !this.isProcessing() && 
-           this.user().trim() !== '' && 
+  canUpload(): boolean {
+    return this.user().trim() !== '' && 
            this.workflowVarName().trim() !== '' && 
-           this.workflowId().trim() !== '';
+           this.workflowId().trim() !== '' &&
+           this.hasUploadedFile() &&
+           !this.isProcessing();
   }
 }

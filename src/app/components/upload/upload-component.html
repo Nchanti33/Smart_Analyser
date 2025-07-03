@@ -1,42 +1,42 @@
 <div class="upload-container">
   <div class="upload-header">
-    <h2>📤 Téléchargement de Document</h2>
-    <p>Un seul document à la fois - Formats acceptés: PDF, DOCX, TXT</p>
+    <h2>📤 Document Upload</h2>
+    <p>Upload and process documents with external API</p>
   </div>
 
   <!-- Configuration Section -->
   <div class="config-section">
     <div class="config-header">
-      <h3>⚙️ Configuration du Workflow</h3>
+      <h3>⚙️ Configuration</h3>
     </div>
     <div class="config-form">
       <div class="form-group">
-        <label for="user">Utilisateur:</label>
+        <label for="user">User:</label>
         <input
           id="user"
           type="text"
           [(ngModel)]="user"
-          placeholder="Nom d'utilisateur"
+          placeholder="User"
           class="form-input"
         />
       </div>
       <div class="form-group">
-        <label for="workflowVarName">Nom de variable du workflow:</label>
+        <label for="workflowVarName">Workflow Variable Name:</label>
         <input
           id="workflowVarName"
           type="text"
           [(ngModel)]="workflowVarName"
-          placeholder="document"
+          placeholder="Workflow Variable Name"
           class="form-input"
         />
       </div>
       <div class="form-group">
-        <label for="workflowId">ID du Workflow:</label>
+        <label for="workflowId">Workflow ID:</label>
         <input
           id="workflowId"
           type="text"
           [(ngModel)]="workflowId"
-          placeholder="your-workflow-id"
+          placeholder="Workflow ID"
           class="form-input"
         />
       </div>
@@ -46,8 +46,8 @@
   <!-- Upload Zone -->
   <div 
     class="upload-zone"
-    [class.drag-over]="isDragOver() && !hasUploadedFile()"
-    [class.disabled]="hasUploadedFile()"
+    [class.drag-over]="isDragOver() && !hasUploadedFile() && !isProcessing()"
+    [class.disabled]="hasUploadedFile() || isProcessing()"
     (dragover)="onDragOver($event)"
     (dragleave)="onDragLeave($event)"
     (drop)="onDrop($event)"
@@ -56,17 +56,36 @@
     <div class="upload-content">
       @if (!hasUploadedFile()) {
         <div class="upload-icon">📁</div>
-        <h3>Glissez-déposez votre fichier ici</h3>
-        <p>ou cliquez pour sélectionner</p>
+        <h3>Drag and drop your file here</h3>
+        <p>or click to browse</p>
         <div class="supported-formats">
           <span class="format-badge">PDF</span>
           <span class="format-badge">DOCX</span>
           <span class="format-badge">TXT</span>
         </div>
       } @else {
-        <div class="upload-icon disabled">🔒</div>
-        <h3>Un document est déjà téléchargé</h3>
-        <p>Supprimez le fichier actuel pour en télécharger un nouveau</p>
+        @if (uploadedFiles()[0]) {
+          <div class="file-preview">
+            <span class="file-icon-large">{{ getFileIcon(uploadedFiles()[0].file.name) }}</span>
+            <div class="file-details">
+              <div class="file-name">{{ uploadedFiles()[0].file.name }}</div>
+              <div class="file-size">{{ formatFileSize(uploadedFiles()[0].file.size) }}</div>
+              @if (isProcessing()) {
+                <div class="processing-text">Processing document...</div>
+              }
+            </div>
+            @if (!isProcessing()) {
+              <button 
+                class="remove-btn-inline"
+                (click)="removeFile()"
+                type="button"
+                title="Remove file"
+              >
+                ✕
+              </button>
+            }
+          </div>
+        }
       }
     </div>
   </div>
@@ -80,122 +99,21 @@
     style="display: none;"
   />
 
-  <!-- Uploaded File -->
-  @if (uploadedFiles().length > 0) {
-    <div class="files-section">
-      <div class="files-header">
-        <h3>📋 Document téléchargé</h3>
-        <div class="header-actions">
-          @if (canProcessDocuments()) {
-            <button 
-              class="process-btn"
-              (click)="processDocuments()"
-              type="button"
-              [disabled]="isProcessing()"
-            >
-              @if (isProcessing()) {
-                🔄 Traitement en cours...
-              } @else {
-                🤖 Analyser le document
-              }
-            </button>
-          }
-          <button 
-            class="clear-all-btn"
-            (click)="clearAllFiles()"
-            type="button"
-          >
-            🗑️ Supprimer
-          </button>
-        </div>
-      </div>
-
-      <div class="files-list">
-        @for (file of uploadedFiles(); track $index) {
-          <div class="file-item" [class]="file.status">
-            <div class="file-info">
-              <span class="file-icon">{{ getFileIcon(file.file.name) }}</span>
-              <div class="file-details">
-                <div class="file-name">{{ file.file.name }}</div>
-                <div class="file-size">{{ formatFileSize(file.file.size) }}</div>
-                @if (file.id) {
-                  <div class="file-id">ID: {{ file.id }}</div>
-                }
-              </div>
-            </div>
-
-            <div class="file-status">
-              @switch (file.status) {
-                @case ('uploading') {
-                  <div class="progress-container">
-                    <div class="progress-bar">
-                      <div 
-                        class="progress-fill" 
-                        [style.width.%]="file.progress"
-                      ></div>
-                    </div>
-                    <span class="progress-text">{{ file.progress }}%</span>
-                  </div>
-                }
-                @case ('success') {
-                  <div class="status-success">
-                    <span class="status-icon">✅</span>
-                    <span>Téléchargé</span>
-                  </div>
-                }
-                @case ('processing') {
-                  <div class="status-processing">
-                    <span class="status-icon">🔄</span>
-                    <span>Traitement...</span>
-                  </div>
-                }
-                @case ('processed') {
-                  <div class="status-processed">
-                    <span class="status-icon">🤖</span>
-                    <span>Analysé</span>
-                  </div>
-                }
-                @case ('error') {
-                  <div class="status-error">
-                    <span class="status-icon">❌</span>
-                    <span>{{ file.errorMessage || 'Erreur' }}</span>
-                  </div>
-                }
-              }
-            </div>
-
-            <button 
-              class="remove-btn"
-              (click)="removeFile($index)"
-              type="button"
-              title="Supprimer le fichier"
-            >
-              ✕
-            </button>
-          </div>
+  <!-- Upload Button -->
+  @if (hasUploadedFile()) {
+    <div class="upload-actions">
+      <button 
+        class="upload-btn"
+        (click)="handleFileUpload()"
+        type="button"
+        [disabled]="!canUpload()"
+      >
+        @if (isProcessing()) {
+          🔄 Processing...
+        } @else {
+          📤 Upload Document
         }
-      </div>
-
-      <!-- Summary -->
-      @if (getSuccessfulUploads().length > 0) {
-        <div class="upload-summary">
-          <div class="summary-item">
-            <span class="summary-label">Document:</span>
-            <span class="summary-value">{{ uploadedFiles()[0].file.name }}</span>
-          </div>
-          @if (getProcessedFiles().length > 0) {
-            <div class="summary-item">
-              <span class="summary-label">Statut:</span>
-              <span class="summary-value success">Analysé ✅</span>
-            </div>
-          } @else {
-            <div class="summary-item">
-              <span class="summary-label">Statut:</span>
-              <span class="summary-value">Prêt pour analyse</span>
-            </div>
-          }
-        </div>
-      }
+      </button>
     </div>
   }
 
@@ -203,7 +121,7 @@
   @if (analysisResult()) {
     <div class="analysis-section">
       <div class="analysis-header">
-        <h3>🤖 Résultats de l'analyse</h3>
+        <h3>🤖 Analysis Results</h3>
       </div>
       <div class="analysis-content">
         <pre>{{ analysisResult() }}</pre>
