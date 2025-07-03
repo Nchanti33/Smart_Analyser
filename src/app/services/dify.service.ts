@@ -61,7 +61,7 @@ export class DifyService {
    * Send document to external API with fallback strategies
    * Adapted from the React component's external API service
    */
-  sendDocumentToExternalApi(
+  public sendDocumentToExternalApi(
     file: File,
     user: string,
     workflowVarName: string
