@@ -1,0 +1,56 @@
+<div class="center-panel">
+  <div class="panel-header">
+    <h3>Section {{ sectionIndex + 1 }} - Détails</h3>
+    <button
+      class="copy-btn"
+      (click)="copyToClipboard()"
+      [disabled]="!selectedContent"
+      title="Copier le contenu"
+    >
+      📋 Copier
+    </button>
+  </div>
+
+  <div class="content-display">
+    <div *ngIf="selectedContent; else noContent" class="content-container">
+      <!-- Affichage structuré pour JSON valide -->
+      <div *ngIf="isValidJson && parsedData" class="structured-content">
+        <div *ngFor="let key of getObjectKeys()" class="field-container">
+          <div class="field-label">{{ key }}</div>
+          <div class="field-value">
+            <!-- Affichage pour les tableaux -->
+            <div *ngIf="isArray(getValueForKey(key))" class="array-value">
+              <ul>
+                <li *ngFor="let item of getValueForKey(key)">{{ item }}</li>
+              </ul>
+            </div>
+            <!-- Affichage pour les objets -->
+            <div *ngIf="isObject(getValueForKey(key))" class="object-value">
+              <pre>{{ getValueForKey(key) | json }}</pre>
+            </div>
+            <!-- Affichage pour les valeurs simples -->
+            <div
+              *ngIf="
+                !isArray(getValueForKey(key)) && !isObject(getValueForKey(key))
+              "
+              class="simple-value"
+            >
+              {{ getValueForKey(key) }}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Affichage brut pour JSON invalide -->
+      <div *ngIf="!isValidJson" class="raw-content">
+        <pre>{{ selectedContent }}</pre>
+      </div>
+    </div>
+
+    <ng-template #noContent>
+      <div class="no-content">
+        <p>Sélectionnez une section pour voir son contenu</p>
+      </div>
+    </ng-template>
+  </div>
+</div>

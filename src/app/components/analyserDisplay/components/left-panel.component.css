@@ -1,0 +1,135 @@
+.left-panel {
+  height: 100%;
+  padding: 1.5rem;
+  background: #f8f9fa;
+  border-radius: 8px;
+  overflow-y: auto;
+  border: 1px solid #e9ecef;
+}
+
+.left-panel h3 {
+  margin: 0 0 1.5rem 0;
+  color: #2d3748;
+  font-size: 1.1rem;
+  font-weight: 600;
+  border-bottom: 2px solid rgb(0, 174, 141);
+  padding-bottom: 0.5rem;
+}
+
+.sections-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.section-btn {
+  padding: 1rem;
+  border: 1px solid #e2e8f0;
+  background: white;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-align: left;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.section-btn:hover {
+  border-color: rgb(0, 174, 141);
+  background: rgba(0, 174, 141, 0.05);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+}
+
+.section-btn.active {
+  border-color: rgb(0, 174, 141);
+  background: rgba(0, 174, 141, 0.1);
+  font-weight: 600;
+  box-shadow: 0 2px 6px rgba(0, 174, 141, 0.2);
+}
+
+.section-number {
+  background: rgb(0, 174, 141);
+  color: white;
+  border-radius: 50%;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 0.9rem;
+  flex-shrink: 0;
+}
+
+.section-btn.active .section-number {
+  background: rgb(0, 150, 120);
+}
+
+.section-preview {
+  font-size: 0.9rem;
+  color: #4a5568;
+  line-height: 1.4;
+  flex: 1;
+}
+
+.section-btn.active .section-preview {
+  color: #2d3748;
+}
+
+.section-btn.invalid {
+  border-color: #fed7aa;
+  background: #fef7f0;
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.section-btn.invalid:hover {
+  border-color: #fed7aa;
+  background: #fef7f0;
+  transform: none;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.section-btn.invalid .section-number {
+  background: #f59e0b;
+}
+
+.section-btn.invalid .section-preview {
+  color: #92400e;
+}
+
+.section-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.no-sections {
+  text-align: center;
+  padding: 2rem;
+  color: #64748b;
+}
+
+.no-sections p {
+  font-size: 0.9rem;
+  margin: 0;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .left-panel {
+    padding: 1rem;
+  }
+
+  .section-btn {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+
+  .section-number {
+    align-self: flex-start;
+  }
+}

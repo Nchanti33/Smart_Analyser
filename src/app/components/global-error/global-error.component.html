@@ -1,0 +1,25 @@
+<div *ngIf="hasError" class="global-error-container">
+  <div class="error-banner">
+    <div class="error-content">
+      <div class="error-icon">⚠️</div>
+      <div class="error-details">
+        <div class="error-title">Une erreur s'est produite</div>
+        <div class="error-message">{{ errorMessage }}</div>
+      </div>
+      <div class="error-actions">
+        <button
+          class="retry-btn"
+          (click)="onRetry()"
+          [disabled]="isRetrying"
+          [class.loading]="isRetrying"
+        >
+          <span *ngIf="!isRetrying">🔄 Réessayer</span>
+          <span *ngIf="isRetrying">⏳ En cours...</span>
+        </button>
+        <button class="reset-btn" (click)="onReset()" [disabled]="isRetrying">
+          🔄 Nouveau fichier
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Analyser - Analysis Result</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #ffffff;
+            color: #333;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            background-color: #f8f9fa;
+            border-bottom: 3px solid rgb(0, 174, 141);
+            padding: 20px 0;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            text-align: center;
+            color: #333;
+            font-size: 2.5rem;
+            font-weight: 600;
+        }
+
+        .header p {
+            text-align: center;
+            color: #666;
+            font-size: 1.1rem;
+            margin-top: 10px;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 50px;
+            font-size: 1.2rem;
+            color: #666;
+        }
+
+        .loading-spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid rgb(0, 174, 141);
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .result-container {
+            background-color: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 12px;
+            padding: 30px;
+            margin: 20px 0;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .result-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid rgb(0, 174, 141);
+        }
+
+        .result-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .result-content {
+            background-color: #ffffff;
+            padding: 25px;
+            border-radius: 8px;
+            border: 1px solid #e9ecef;
+            white-space: pre-wrap;
+            font-size: 1rem;
+            line-height: 1.8;
+            color: #333;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin-top: 25px;
+        }
+
+        .btn {
+            padding: 12px 25px;
+            border: none;
+            border-radius: 6px;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background-color: rgb(0, 174, 141);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: rgb(0, 154, 126);
+            transform: translateY(-2px);
+        }
+
+        .btn-secondary {
+            background-color: #6c757d;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background-color: #5a6268;
+            transform: translateY(-2px);
+        }
+
+        .error-message {
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+            text-align: center;
+        }
+
+        .metadata {
+            background-color: #e9ecef;
+            padding: 15px;
+            border-radius: 6px;
+            margin-top: 20px;
+            font-size: 0.9rem;
+            color: #666;
+        }
+
+        .metadata strong {
+            color: #333;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 15px;
+            }
+
+            .header h1 {
+                font-size: 2rem;
+            }
+
+            .result-container {
+                padding: 20px;
+            }
+
+            .action-buttons {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            .btn {
+                width: 100%;
+                max-width: 250px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="container">
+            <h1>Smart Analyser</h1>
+            <p>Document Analysis Result</p>
+        </div>
+    </div>
+
+    <div class="container">
+        <div id="loading" class="loading">
+            <div class="loading-spinner"></div>
+            <p>Loading analysis result...</p>
+        </div>
+
+        <div id="error" class="error-message" style="display: none;">
+            <h3>Error</h3>
+            <p id="error-message">No analysis data found. Please try uploading and analyzing a document again.</p>
+        </div>
+
+        <div id="result" style="display: none;">
+            <div class="result-container">
+                <div class="result-header">
+                    <h2 class="result-title">Analysis Result</h2>
+                </div>
+                <div class="result-content" id="analysis-text"></div>
+                <div class="metadata" id="metadata"></div>
+                <div class="action-buttons">
+                    <button class="btn btn-primary" onclick="copyToClipboard()">
+                        📋 Copy to Clipboard
+                    </button>
+                    <button class="btn btn-secondary" onclick="closeWindow()">
+                        ✕ Close Window
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Wait for DOM to load
+        document.addEventListener('DOMContentLoaded', function() {
+            loadAnalysisData();
+        });
+
+        function loadAnalysisData() {
+            try {
+                // Get analysis data from localStorage
+                const analysisDataString = localStorage.getItem('smart-analyser-result');
+                
+                if (!analysisDataString) {
+                    showError('No analysis data found. Please try uploading and analyzing a document again.');
+                    return;
+                }
+
+                const analysisData = JSON.parse(analysisDataString);
+                console.log('Loaded analysis data:', analysisData);
+
+                // Extract the analysis result text
+                let analysisText = 'No analysis result found.';
+                let workflowId = 'N/A';
+                let timestamp = 'N/A';
+
+                if (analysisData) {
+                    if (analysisData.data && analysisData.data.outputs && analysisData.data.outputs.result) {
+                        analysisText = analysisData.data.outputs.result;
+                        workflowId = analysisData.data.workflow_run_id || 'N/A';
+                    } else if (analysisData.result) {
+                        analysisText = analysisData.result;
+                    } else if (typeof analysisData === 'string') {
+                        analysisText = analysisData;
+                    }
+
+                    // Get timestamp from localStorage
+                    const timestampString = localStorage.getItem('smart-analyser-timestamp');
+                    if (timestampString) {
+                        timestamp = new Date(timestampString).toLocaleString();
+                    }
+                }
+
+                // Display the result
+                document.getElementById('analysis-text').textContent = analysisText;
+                document.getElementById('metadata').innerHTML = `
+                    <strong>Workflow ID:</strong> ${workflowId}<br>
+                    <strong>Analysis Date:</strong> ${timestamp}
+                `;
+
+                // Hide loading and show result
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('result').style.display = 'block';
+
+                // Clear the localStorage after loading (optional)
+                // localStorage.removeItem('smart-analyser-result');
+                // localStorage.removeItem('smart-analyser-timestamp');
+
+            } catch (error) {
+                console.error('Error loading analysis data:', error);
+                showError('Error loading analysis data. Please try again.');
+            }
+        }
+
+        function showError(message) {
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('error-message').textContent = message;
+            document.getElementById('error').style.display = 'block';
+        }
+
+        function copyToClipboard() {
+            const analysisText = document.getElementById('analysis-text').textContent;
+            
+            if (navigator.clipboard) {
+                navigator.clipboard.writeText(analysisText).then(function() {
+                    // Show success feedback
+                    const btn = event.target;
+                    const originalText = btn.innerHTML;
+                    btn.innerHTML = '✓ Copied!';
+                    btn.style.backgroundColor = '#28a745';
+                    
+                    setTimeout(function() {
+                        btn.innerHTML = originalText;
+                        btn.style.backgroundColor = 'rgb(0, 174, 141)';
+                    }, 2000);
+                }).catch(function(err) {
+                    console.error('Could not copy text: ', err);
+                    fallbackCopyTextToClipboard(analysisText);
+                });
+            } else {
+                fallbackCopyTextToClipboard(analysisText);
+            }
+        }
+
+        function fallbackCopyTextToClipboard(text) {
+            const textArea = document.createElement("textarea");
+            textArea.value = text;
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+            
+            try {
+                const successful = document.execCommand('copy');
+                if (successful) {
+                    const btn = event.target;
+                    const originalText = btn.innerHTML;
+                    btn.innerHTML = '✓ Copied!';
+                    btn.style.backgroundColor = '#28a745';
+                    
+                    setTimeout(function() {
+                        btn.innerHTML = originalText;
+                        btn.style.backgroundColor = 'rgb(0, 174, 141)';
+                    }, 2000);
+                }
+            } catch (err) {
+                console.error('Fallback: Could not copy text: ', err);
+            }
+            
+            document.body.removeChild(textArea);
+        }
+
+        function closeWindow() {
+            window.close();
+        }
+    </script>
+</body>
+</html>

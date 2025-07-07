@@ -1,0 +1,37 @@
+<div class="right-panel">
+  <div class="panel-header">
+    <h3>Données brutes (JSON)</h3>
+    <div class="action-buttons">
+      <button
+        class="copy-btn"
+        (click)="copyJsonToClipboard()"
+        [disabled]="!completeRes"
+        title="Copier le JSON"
+      >
+        📋 Copier
+      </button>
+      <button
+        class="download-btn"
+        (click)="downloadJson()"
+        [disabled]="!completeRes"
+        title="Télécharger le JSON"
+      >
+        💾 Télécharger
+      </button>
+    </div>
+  </div>
+
+  <div class="json-display">
+    <div *ngIf="completeRes; else noData" class="json-content">
+      <div class="json-formatted">
+        <pre class="json-text" [innerHTML]="coloredJson"></pre>
+      </div>
+    </div>
+
+    <ng-template #noData>
+      <div class="no-data">
+        <p>Aucune donnée disponible</p>
+      </div>
+    </ng-template>
+  </div>
+</div>

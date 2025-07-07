@@ -21,9 +21,14 @@
                 "input": "public"
               }
             ],
+<<<<<<< HEAD
+            "styles": ["src/styles.css"],
+            "outputMode": "static"
+=======
             "styles": [
               "src/styles.css"
             ]
+>>>>>>> a2ce3dc3bf568ad0b7f6b7d305d04986ef8dfe70
           },
           "configurations": {
             "production": {
@@ -74,9 +79,7 @@
                 "input": "public"
               }
             ],
-            "styles": [
-              "src/styles.css"
-            ]
+            "styles": ["src/styles.css"]
           }
         }
       }

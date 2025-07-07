@@ -1,0 +1,55 @@
+<div class="analyser-display-page">
+  <div class="analyser-display-container">
+    <div class="analyser-display-header">
+      <h1>{{ getAnalysisTitle() }}</h1>
+      <button
+        class="back-btn"
+        (click)="onClose()"
+        aria-label="Retour à l'upload"
+      >
+        ← Retour à l'upload
+      </button>
+    </div>
+
+    <div class="analyser-display-content">
+      <div *ngIf="isLoading" class="loading-indicator">
+        <div class="spinner"></div>
+        <p>Traitement du document en cours...</p>
+      </div>
+
+      <div *ngIf="!isLoading && analysisResult" class="analysis-layout">
+        <!-- Zone de gauche : Liste des sections -->
+        <div class="left-zone">
+          <app-left-panel
+            [arrayRes]="arrayRes"
+            [selectedIndex]="selectedIndex"
+            (sectionSelected)="onSectionSelected($event)"
+          ></app-left-panel>
+        </div>
+
+        <!-- Zone centrale : Détails de la section -->
+        <div class="center-zone">
+          <app-center-panel
+            [selectedContent]="selectedContent"
+            [sectionIndex]="selectedIndex"
+          ></app-center-panel>
+        </div>
+
+        <!-- Zone de droite : JSON brut -->
+        <div class="right-zone">
+          <app-right-panel [completeRes]="completeRes"></app-right-panel>
+        </div>
+      </div>
+
+      <div *ngIf="!isLoading && !analysisResult" class="no-result">
+        <p>
+          Aucun résultat d'analyse disponible. Veuillez d'abord uploader un
+          document.
+        </p>
+        <button class="primary-btn" (click)="onClose()">
+          Uploader un document
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
