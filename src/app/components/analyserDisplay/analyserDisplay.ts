@@ -81,6 +81,35 @@ export class AnalyserDisplayComponent implements OnInit, OnDestroy {
     this.selectedIndex = index;
   }
 
+  onContentModified(event: { index: number; content: string }): void {
+    // Update the content in the arrayRes
+    if (event.index >= 0 && event.index < this.arrayRes.length) {
+      this.arrayRes[event.index] = event.content;
+      console.log('Content modified for section', event.index + 1);
+
+      // Optionally, you can also update the complete response if needed
+      // This depends on your application's requirements
+      this.updateCompleteResponse();
+    }
+  }
+
+  private updateCompleteResponse(): void {
+    // Reconstruct the complete response from the modified array
+    try {
+      const parsedArray = this.arrayRes.map((item) => {
+        try {
+          return JSON.parse(item);
+        } catch {
+          return item;
+        }
+      });
+
+      this.completeRes = JSON.stringify(parsedArray, null, 2);
+    } catch (error) {
+      console.error('Error updating complete response:', error);
+    }
+  }
+
   get selectedContent(): string {
     return this.arrayRes[this.selectedIndex] || '';
   }

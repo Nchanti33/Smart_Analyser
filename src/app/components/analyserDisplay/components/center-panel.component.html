@@ -1,49 +1,162 @@
 <div class="center-panel">
   <div class="panel-header">
     <h3>Section {{ sectionIndex + 1 }} - Détails</h3>
-    <button
-      class="copy-btn"
-      (click)="copyToClipboard()"
-      [disabled]="!selectedContent"
-      title="Copier le contenu"
-    >
-      📋 Copier
-    </button>
+    <div class="header-actions">
+      <button
+        *ngIf="!isEditing"
+        class="edit-btn"
+        (click)="startEditing()"
+        [disabled]="!selectedContent"
+        title="Modifier le contenu"
+      >
+        ✏️ Modifier
+      </button>
+      <button
+        *ngIf="isEditing"
+        class="save-btn"
+        (click)="saveChanges()"
+        title="Sauvegarder les modifications"
+      >
+        💾 Sauvegarder
+      </button>
+      <button
+        *ngIf="isEditing"
+        class="cancel-btn"
+        (click)="cancelEditing()"
+        title="Annuler les modifications"
+      >
+        ❌ Annuler
+      </button>
+      <button
+        *ngIf="!isEditing"
+        class="copy-btn"
+        (click)="copyToClipboard()"
+        [disabled]="!selectedContent"
+        title="Copier le contenu"
+      >
+        📋 Copier
+      </button>
+    </div>
   </div>
 
   <div class="content-display">
     <div *ngIf="selectedContent; else noContent" class="content-container">
-      <!-- Affichage structuré pour JSON valide -->
-      <div *ngIf="isValidJson && parsedData" class="structured-content">
-        <div *ngFor="let key of getObjectKeys()" class="field-container">
-          <div class="field-label">{{ key }}</div>
-          <div class="field-value">
-            <!-- Affichage pour les tableaux -->
-            <div *ngIf="isArray(getValueForKey(key))" class="array-value">
-              <ul>
-                <li *ngFor="let item of getValueForKey(key)">{{ item }}</li>
-              </ul>
-            </div>
-            <!-- Affichage pour les objets -->
-            <div *ngIf="isObject(getValueForKey(key))" class="object-value">
-              <pre>{{ getValueForKey(key) | json }}</pre>
-            </div>
-            <!-- Affichage pour les valeurs simples -->
-            <div
-              *ngIf="
-                !isArray(getValueForKey(key)) && !isObject(getValueForKey(key))
-              "
-              class="simple-value"
-            >
-              {{ getValueForKey(key) }}
+      <!-- Mode édition -->
+      <div *ngIf="isEditing" class="edit-mode">
+        <!-- Édition structurée pour JSON valide -->
+        <div *ngIf="isValidJson && parsedData" class="structured-edit">
+          <div *ngFor="let key of getObjectKeys()" class="field-edit-container">
+            <div class="field-label">{{ key }}</div>
+            <div class="field-edit-value">
+              <div class="edit-actions">
+                <button
+                  *ngIf="editingField !== key"
+                  class="field-edit-btn"
+                  (click)="startFieldEditing(key)"
+                  title="Modifier ce champ"
+                >
+                  ✏️
+                </button>
+                <button
+                  *ngIf="editingField === key"
+                  class="field-save-btn"
+                  (click)="saveFieldEdit(key)"
+                  title="Valider"
+                >
+                  ✓
+                </button>
+                <button
+                  *ngIf="editingField === key"
+                  class="field-cancel-btn"
+                  (click)="cancelFieldEdit()"
+                  title="Annuler"
+                >
+                  ✗
+                </button>
+              </div>
+
+              <!-- Champ en édition -->
+              <div *ngIf="editingField === key" class="field-input">
+                <textarea
+                  [(ngModel)]="tempEditValues[key]"
+                  class="edit-textarea"
+                  [value]="formatForInput(getEditValue(key))"
+                  (input)="onFieldInput(key, $event)"
+                  placeholder="Entrez la nouvelle valeur..."
+                ></textarea>
+              </div>
+
+              <!-- Champ en lecture -->
+              <div *ngIf="editingField !== key" class="field-display">
+                <!-- Affichage pour les tableaux -->
+                <div *ngIf="isArray(getEditValue(key))" class="array-value">
+                  <ul>
+                    <li *ngFor="let item of getEditValue(key)">{{ item }}</li>
+                  </ul>
+                </div>
+                <!-- Affichage pour les objets -->
+                <div *ngIf="isObject(getEditValue(key))" class="object-value">
+                  <pre>{{ getEditValue(key) | json }}</pre>
+                </div>
+                <!-- Affichage pour les valeurs simples -->
+                <div
+                  *ngIf="
+                    !isArray(getEditValue(key)) && !isObject(getEditValue(key))
+                  "
+                  class="simple-value"
+                >
+                  {{ getEditValue(key) }}
+                </div>
+              </div>
             </div>
           </div>
         </div>
+
+        <!-- Édition brute pour JSON invalide -->
+        <div *ngIf="!isValidJson" class="raw-edit">
+          <textarea
+            [(ngModel)]="editContent"
+            class="raw-edit-textarea"
+            placeholder="Modifiez le contenu..."
+          ></textarea>
+        </div>
       </div>
 
-      <!-- Affichage brut pour JSON invalide -->
-      <div *ngIf="!isValidJson" class="raw-content">
-        <pre>{{ selectedContent }}</pre>
+      <!-- Mode lecture (existant) -->
+      <div *ngIf="!isEditing">
+        <!-- Affichage structuré pour JSON valide -->
+        <div *ngIf="isValidJson && parsedData" class="structured-content">
+          <div *ngFor="let key of getObjectKeys()" class="field-container">
+            <div class="field-label">{{ key }}</div>
+            <div class="field-value">
+              <!-- Affichage pour les tableaux -->
+              <div *ngIf="isArray(getValueForKey(key))" class="array-value">
+                <ul>
+                  <li *ngFor="let item of getValueForKey(key)">{{ item }}</li>
+                </ul>
+              </div>
+              <!-- Affichage pour les objets -->
+              <div *ngIf="isObject(getValueForKey(key))" class="object-value">
+                <pre>{{ getValueForKey(key) | json }}</pre>
+              </div>
+              <!-- Affichage pour les valeurs simples -->
+              <div
+                *ngIf="
+                  !isArray(getValueForKey(key)) &&
+                  !isObject(getValueForKey(key))
+                "
+                class="simple-value"
+              >
+                {{ getValueForKey(key) }}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Affichage brut pour JSON invalide -->
+        <div *ngIf="!isValidJson" class="raw-content">
+          <pre>{{ selectedContent }}</pre>
+        </div>
       </div>
     </div>
 
