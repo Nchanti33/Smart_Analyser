@@ -4,7 +4,7 @@
 
 ## 🛠️ Prérequis / Prerequisites
 
-### Français
+### Français (Téléchargement)
 
 Avant de commencer, vous devez installer Node.js et npm :
 
@@ -20,7 +20,7 @@ Avant de commencer, vous devez installer Node.js et npm :
 
    Vous devez voir s'afficher les versions installées.
 
-### English
+### English (Download)
 
 Before starting, you need to install Node.js and npm:
 
@@ -40,7 +40,7 @@ Before starting, you need to install Node.js and npm:
 
 ## 📥 Télécharger / Download
 
-#### Français
+### Français – Mode d'emploi
 
 1. **Cloner le dépôt**
 
@@ -68,7 +68,7 @@ Before starting, you need to install Node.js and npm:
    - Décompressez l'archive ZIP téléchargée.
    - Ouvrez le dossier `Smart_Analyser` extrait.
 
-#### English
+### English
 
 1. **Clone the repository**
 
@@ -100,7 +100,7 @@ Before starting, you need to install Node.js and npm:
 
 ## ⚙️ Installer / Install
 
-#### Français
+### Français – Installation
 
 Dans le dossier du projet, exécutez :
 
@@ -108,7 +108,7 @@ Dans le dossier du projet, exécutez :
 npm install
 ```
 
-#### English
+#### English Instructions
 
 In the project folder, run:
 
@@ -120,7 +120,7 @@ npm install
 
 ## 🚀 Lancer / Start
 
-#### Français
+### Français
 
 Pour démarrer l'application en mode développement :
 
@@ -130,7 +130,7 @@ npm start
 
 Puis ouvrez votre navigateur à l'adresse : [http://localhost:4200](http://localhost:4200)
 
-#### English
+#### English – Start
 
 To start the application in development mode:
 
@@ -144,14 +144,14 @@ Then open your browser at: [http://localhost:4200](http://localhost:4200)
 
 ## 📝 Utiliser / Use
 
-#### Français
+### Français – Utilisation
 
 - Uploadez un document via l'interface.
 - Naviguez dans les sections à gauche.
 - Consultez et modifiez le contenu au centre.
 - Visualisez le JSON brut à droite.
 
-#### English
+### English – Usage
 
 - Upload a document using the interface.
 - Browse sections on the left.
