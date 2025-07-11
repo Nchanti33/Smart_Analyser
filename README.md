@@ -29,6 +29,8 @@ Before starting, you need to install Node.js and npm:
 1. Go to the official [Node.js](https://nodejs.org/) website.
 2. Download the recommended LTS version for your system (Windows, macOS, or Linux).
 3. Install Node.js by following the installer instructions. npm will be installed automatically with Node.js.
+node : v22.14.0 et +
+npm : 11.4.2 et +
 4. Check the installation in a terminal:
 
    ```bash
